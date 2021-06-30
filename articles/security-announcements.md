@@ -13,17 +13,18 @@
 
 ## 相关安全文件
 
-- [Disabling the Java Serializer](https://doc.akka.io/docs/akka/current/remoting.html#disable-java-serializer)
-- [Remote deployment whitelist](https://doc.akka.io/docs/akka/current/remoting.html#remote-deployment-whitelist)
-- [Remote Security](https://doc.akka.io/docs/akka/current/remoting.html#remote-security)
+- [Java Serialization](https://doc.akka.io/docs/akka/current/serialization.html#java-serialization)
+- [Remote deployment allow list](https://doc.akka.io/docs/akka/current/remoting.html#remote-deployment-allow-list)
+- [Remote Security](https://doc.akka.io/docs/akka/current/remoting-artery.html#remote-security)
 
 ## 已修复的安全漏洞
 - [Java Serialization, Fixed in Akka 2.4.17](https://doc.akka.io/docs/akka/current/security/2017-02-10-java-serialization.html)
 - [Camel Dependency, Fixed in Akka 2.5.4](https://doc.akka.io/docs/akka/current/security/2017-08-09-camel.html)
 - [Broken random number generators AES128CounterSecureRNG / AES256CounterSecureRNG, Fixed in Akka 2.5.16](https://doc.akka.io/docs/akka/current/security/2018-08-29-aes-rng.html)
 
-
 ----------
+
+[Java Serialization, Fixed in Akka 2.4.17 ](https://doc.akka.io/docs/akka/current/security/2017-02-10-java-serialization.html)
 
 **英文原文链接**：[Security Announcements](https://doc.akka.io/docs/akka/current/security/index.html).
 
