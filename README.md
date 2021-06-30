@@ -12,8 +12,8 @@
 
 ## 快速入门指南 
 
-- [快速入门 Akka classic Java 指南（中文）](articles/qucikstart-akka-java.md)
-- [快速入门 Akka Scala 指南（英文）](https://developer.lightbend.com/guides/akka-quickstart-scala/)
+- [快速入门 Akka classic Java 指南](articles/qucikstart-akka-java.md)
+- [快速入门 Akka Scala 指南](articles/quickstart-akka-scala.md)
 
 ## 目录
 

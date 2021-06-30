@@ -1,19 +1,19 @@
 # 快速入门 Akka Scala 指南
 
-Akka 是一个用于在 JVM 上构建高并发、分布式和容错的事件驱动应用程序的运行时工具包。Akka 既可以用于 Java，也可以用于 Scala。本指南通过描述 Scala 版本的`Hello World`示例来介绍 Akka。如果你喜欢将 Akka 与 Java 结合使用，请切换到「[快速入门 Akka Java 指南](akka-quickstart-java.md)」。
+Akka 是一个用于在 JVM 上构建高并发、分布式和容错的事件驱动应用程序的运行时工具包。Akka 既可以用于 Java，也可以用于 Scala。本指南通过描述 Scala 版本的`Hello World`示例来介绍 Akka。如果你喜欢将 Akka 与 Java 结合使用，请切换到「[快速入门 Akka Java 指南](quickstart-akka-java.md)」。
 
 Actors 是 Akka 的执行单元。Actor 模型是一种抽象，它让编写正确的并发、并行和分布式系统更容易。`Hello World`示例说明了 Akka 的基础知识。在 30 分钟内，你应该能够下载并运行示例，并使用本指南了解示例是如何构造的。这会让你初步了解 Akka 的魅力，希望这能够让你拥有深入了解 Akka 的兴趣！
 
-在体验过这个示例之后，想深入了解 Akka，阅读「[Getting Started Guide](articles/getting-started-guide/introduction-to-akka.md)」是一个很好的选择，可以继续学习更多关于 Akka 的知识。
+在体验过这个示例之后，想深入了解 Akka，阅读「[Getting Started Guide](getting-started-guide/introduction-to-akka.md)」是一个很好的选择，可以继续学习更多关于 Akka 的知识。
 
-[Akka 阿卡平台指南](https://developer.lightbend.com/docs/akka-platform-guide/)有更多关于Akka的概念和特点的讨论，并提供了一个 Akka 工具包的概述。
+[Akka 平台指南](https://developer.lightbend.com/docs/akka-platform-guide/)有更多关于Akka的概念和特点的讨论，并提供了一个 Akka 工具包的概述。
 
 ## 下载示例
 Scala 版本的`Hello World` 示例是一个包含sbt （构建工具）发行版的压缩项目。你可以在 Linux、MacOS 或 Windows 上运行它。唯一的先决条件是安装 Java 8。
 
 下载和解压示例：
 
-- 下载[zip 文件](https://translate.google.com/website?sl=auto&tl=zh-CN&ajax=1&se=1&u=https://example.lightbend.com/v1/download/akka-quickstart-scala?name%3Dakka-quickstart-scala)并将其解[压缩](https://translate.google.com/website?sl=auto&tl=zh-CN&ajax=1&se=1&u=https://example.lightbend.com/v1/download/akka-quickstart-scala?name%3Dakka-quickstart-scala)到一个方便的位置：
+- 下载[zip 文件](https://example.lightbend.com/v1/download/akka-quickstart-scala?name=akka-quickstart-scala)并将其解压缩到一个方便的位置：
 
 - 在 Linux 和 OSX 系统上，打开终端并使用命令`unzip akka-quickstart-scala.zip`. 注意：在 OSX 上，如果您使用 Archiver 解压缩，您还必须使 sbt 文件可执行：
 
@@ -330,7 +330,7 @@ object AkkaQuickstart extends App {
 class AkkaQuickstartSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
 ```
 
-通过扩展`ScalaTestWithActorTestKit`来支持 ScalaTest。对于其他测试框架，可以直接使用 testkit，请参阅[完整文档](https://translate.google.com/website?sl=auto&tl=zh-CN&ajax=1&se=1&u=https://doc.akka.io/docs/akka/2.6/typed/testing-async.html)。
+通过扩展`ScalaTestWithActorTestKit`来支持 ScalaTest。对于其他测试框架，可以直接使用 testkit，请参阅[完整文档](https://doc.akka.io/docs/akka/2.6/typed/testing-async.html)。
 
 我们将在测试案例中用它（ ScalaTest）来管理ActorTestKit 的生命周期。
 
@@ -376,7 +376,7 @@ class AkkaQuickstartSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 }
 ```
 
-示例代码只是触及了`ActorTestKit`. 可以在[此处](https://translate.google.com/website?sl=auto&tl=zh-CN&ajax=1&se=1&u=https://doc.akka.io/docs/akka/2.6/typed/testing-async.html)找到完整的概述。
+示例代码只是触及了`ActorTestKit`. 可以在[此处](https://doc.akka.io/docs/akka/2.6/typed/testing-async.html)找到完整的概述。
 
 ## 运行应用程序
 
