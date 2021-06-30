@@ -503,7 +503,5 @@ Akka 模块无缝集成在一起。例如，想想网站用户访问的一大组
 
 [示例介绍](tutorial.md)
 
-**英文原文链接**：[Overview of Akka libraries and modules](https://doc.akka.io/docs/akka/current/guide/modules.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Overview of Akka libraries and modules](https://doc.akka.io/docs/akka/current/guide/modules.html).

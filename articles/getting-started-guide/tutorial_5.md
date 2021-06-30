@@ -572,9 +572,5 @@ class DeviceGroup(context: ActorContext[DeviceGroup.Command], groupId: String)
 
 [一般概念](../general-concepts/terminology.md) 
 
-
-
-**英文原文链接**：[Part 5: Querying Device Groups](https://doc.akka.io/docs/akka/current/guide/tutorial_5.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Part 5: Querying Device Groups](https://doc.akka.io/docs/akka/current/guide/tutorial_5.html).

@@ -3,7 +3,7 @@
 
 ## 先决条件
 
-你应该提前跟着「[快速入门 Akka Scala 指南](../qucikstart-akka-scala.md)」中的指令来下载并运行`Hello World`示例。你将使用它作为种子项目，并添加本教程中描述的功能。
+你应该提前跟着「[快速入门 Akka Scala 指南](../quickstart-akka-scala.md)」中的指令来下载并运行`Hello World`示例。你将使用它作为种子项目，并添加本教程中描述的功能。
 
 ```
 Note
@@ -41,7 +41,5 @@ Akka 模块的 Java 和 Scala DSL 捆绑在同一个 JAR 中。为了获得流�
 
 [第 1 部分：Actor 架构 ](tutorial_1.md)
 
-**英文原文链接**：[Introduction to the Example](https://doc.akka.io/docs/akka/current/guide/tutorial.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Introduction to the Example](https://doc.akka.io/docs/akka/current/guide/tutorial.html).

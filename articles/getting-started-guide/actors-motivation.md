@@ -96,7 +96,5 @@ OOP 的核心之一是封装。封装意味着不能直接从外部访问对象�
 
 [Actor 模型如何满足现代分布式系统的需求 ](actor-intro.md)
 
-**英文原文链接**：[Why modern systems need a new programming model](https://doc.akka.io/docs/akka/current/guide/actors-motivation.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Why modern systems need a new programming model](https://doc.akka.io/docs/akka/current/guide/actors-motivation.html).

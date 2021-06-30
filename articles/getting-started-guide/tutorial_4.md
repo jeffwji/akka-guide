@@ -516,9 +516,5 @@ class DeviceManager(context: ActorContext[DeviceManager.Command])
 
 [第 5 部分：查询设备组](tutorial_5.md)
 
-
-
-**英文原文链接**：[Part 4: Working with Device Groups](https://doc.akka.io/docs/akka/current/guide/tutorial_4.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Part 4: Working with Device Groups](https://doc.akka.io/docs/akka/current/guide/tutorial_4.html).

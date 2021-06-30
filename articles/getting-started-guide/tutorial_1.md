@@ -45,7 +45,7 @@ libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion
 ## Akka 的 Actor 层级
 Akka 的 Actor 总是属于父 Actor。通常，你可以通过调用`ActorContext().spawn()`来创建 Actor。创建 Actor 的 Actor 成为新创建的子 Actor 的父级。那么你可能会问，第一个 Actor 的父节点是谁？
 
-如下图所示，所有的 Actor 都有一个共同的父节点，即用户监护人(`guardian`)。它在您启动 ActorSystem 时定义并创建。正如我们在[快速入门指南中介绍的那样](https://translate.google.com/website?sl=auto&tl=zh-CN&ajax=1&se=1&u=https://developer.lightbend.com/guides/akka-quickstart-scala/)，actor 的创建会返回一个有效的 URL引用。例如，如果我们从User guardian 中创建一个以`someActor`命名的 actor `context.spawn(someBehavior, "someActor")`，它的引用将包含 path `/user/someActor`。
+如下图所示，所有的 Actor 都有一个共同的父节点，即用户监护人(`guardian`)。它在您启动 ActorSystem 时定义并创建。正如我们在[快速入门指南中介绍的那样](../quickstart-akka-scala.md)，actor 的创建会返回一个有效的 URL引用。例如，如果我们从User guardian 中创建一个以`someActor`命名的 actor `context.spawn(someBehavior, "someActor")`，它的引用将包含 path `/user/someActor`。
 
 ![Part 1: Actor Architecture](../../images/getting-started-guide/tutorial_1/actor-hierarchy.png)
 
@@ -281,9 +281,6 @@ java.lang.Exception: I failed!
 
 [第 2 部分：创建第一个 Actor ](tutorial_2.md)
 
-
+----------
 
 **英文原文链接**：[Part 1: Actor Architecture](https://doc.akka.io/docs/akka/current/guide/tutorial_1.html).
-
-----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————

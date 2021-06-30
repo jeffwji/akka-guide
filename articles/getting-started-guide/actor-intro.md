@@ -66,8 +66,6 @@ Actor 不调用方法，而是互相发送消息。发送消息不会将线程�
 
 [Akka 库和模块概述](modules.md)
 
-**英文原文链接**：[How the Actor Model Meets the Needs of Modern, Distributed Systems](https://doc.akka.io/docs/akka/current/guide/actors-intro.html).
-
 ----------
 
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[How the Actor Model Meets the Needs of Modern, Distributed Systems](https://doc.akka.io/docs/akka/current/guide/actors-intro.html).

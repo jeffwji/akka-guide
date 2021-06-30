@@ -27,7 +27,6 @@ Akka 对 Actor 模型的使用提供了一个抽象层级，使得编写正确�
 
 [为什么现代系统需要新的编程模型](actors-motivation.md)
 
-**英文原文链接**：[Introduction to Akka](https://doc.akka.io/docs/akka/current/guide/introduction.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+
+**英文原文链接**：[Introduction to Akka](https://doc.akka.io/docs/akka/current/guide/introduction.html).

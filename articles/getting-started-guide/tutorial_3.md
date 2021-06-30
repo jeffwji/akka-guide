@@ -304,9 +304,5 @@ class Device(context: ActorContext[Device.Command], groupId: String, deviceId: S
 
 [第 4 部分：使用设备组](tutorial_4.md)
 
-
-
-**英文原文链接**：[Part 3: Working with Device Actors](https://doc.akka.io/docs/akka/current/guide/tutorial_3.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Part 3: Working with Device Actors](https://doc.akka.io/docs/akka/current/guide/tutorial_3.html).

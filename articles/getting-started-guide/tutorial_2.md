@@ -71,9 +71,5 @@ object IotApp {
 
 [第 3 部分：使用设备 Actor](tutorial_3.md)
 
-
-
-**英文原文链接**：[Part 2: Creating the First Actor](https://doc.akka.io/docs/akka/current/guide/tutorial_2.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Part 2: Creating the First Actor](https://doc.akka.io/docs/akka/current/guide/tutorial_2.html).
