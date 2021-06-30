@@ -302,7 +302,7 @@ class Device(context: ActorContext[Device.Command], groupId: String, deviceId: S
 
 ----------
 
-[第 4 部分：使用设备组](tutorial_4)
+[第 4 部分：使用设备组](tutorial_4.md)
 
 
 

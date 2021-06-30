@@ -21,7 +21,7 @@ Akka 对 Actor 模型的使用提供了一个抽象层级，使得编写正确�
 - [为什么现代系统需要新的编程模型](actors-motivation.md)
 - [Actor 模型如何满足现代分布式系统的需求](actor-intro.md)
 - [Akka 库和模块概述](modules.md)
-- 一个基于 Hello World 示例的「[更复杂的例子](tutorial.html)」以说明常见的 Akka 模式。
+- 一个基于 Hello World 示例的「[更复杂的例子](tutorial.md)」以说明常见的 Akka 模式。
 
 ----------
 
