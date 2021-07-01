@@ -58,13 +58,13 @@ your-dispatcher {
 
 有关如何配置自定义调度器的完整详细信息，请参阅「[非类型化文档](https://doc.akka.io/docs/akka/current/dispatchers.html#types-of-dispatchers)」。
 
+## 小心地管理阻塞
+
+
 
 ----------
 
 **英文原文链接**：[Dispatchers](https://doc.akka.io/docs/akka/current/typed/dispatchers.html).
-
-
-
 
 ----------
 ———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
