@@ -54,7 +54,7 @@ Actor 的最后一个部分是其处理子 Actor 异常的策略——故障。�
 
 ----------
 
-[督和监测 ](supervision.md)
+[督和监测](supervision.md)
 
 ----------
 **英文原文链接**：[What is an Actor?](https://doc.akka.io/docs/akka/current/general/actors.html).
