@@ -51,7 +51,7 @@ Actor 引用指定一个单独的 Actor，引用的生命周期与该 Actor 的�
 在一些实际的文件系统中，你可能会想到一个 Actor 的“路径别名”或“符号链接”，即一个 Actor 可以使用多个路径访问。但是，你应该注意，Actor 层次结构不同于文件系统层次结构。不能自由地创建 Actor 路径（如符号链接）来引用任意的 Actor。
 
 ## 如何获得 Actor 引用？
-关于如何获得演员引用，有两个一般类别：通过[创建Actor](../typed/actor-lifecycle.md#创建 Actors)或通过[接待员](../typed/actor-discovery.md#receptionist)查找他们。
+关于如何获得演员引用，有两个一般类别：通过[创建Actor](../typed/actor-lifecycle.md#创建Actors)或通过[接待员](../typed/actor-discovery.md#receptionist)查找他们。
 
 ## Actor 引用和路径相等
 

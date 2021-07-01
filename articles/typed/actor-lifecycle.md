@@ -20,7 +20,7 @@ dependencies {
 libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % "2.5.23"
 ```
 
-## 创建 Actors
+## 创建Actors
 
 一个 Actor 可以创建或生成任意数量的子 Actor，而子 Actor 又可以生成自己的子 Actor，从而形成一个 Actor 层次。「[ActorSystem](https://doc.akka.io/japi/akka/2.5/?akka/actor/typed/ActorSystem.html)」承载层次结构，并且在`ActorSystem`层次结构的顶部只能有一个根 Actor。一个子 Actor 的生命周期是与其父 Actor 联系在一起的，一个子 Actor 可以在任何时候停止自己或被停止，但永远不能比父 Actor 活得更久。
 
