@@ -14,6 +14,8 @@
 
 非阻塞操作优先于阻塞操作，因为当系统包含阻塞操作时，系统的总体进度并不能得到很好的保证。
 
+并非总是可以避免使用阻塞 API，请参阅[`Blocking Needs Careful Management`](https://doc.akka.io/docs/akka/current/typed/dispatchers.html#blocking-management)在 actor 代码中安全地使用它们。
+
 ## 死锁  vs. 饥饿 vs. 活锁
 当多个 Actor 在等待对方达到某个特定的状态以便能够取得进展时，就会出现死锁（`Deadlock`）。由于没有其他 Actor 达到某种状态（一个`Catch-22`问题），所有受影响的子系统都无法继续运行。死锁与阻塞密切相关，因为 Actor 线程能够无限期地延迟其他线程的进程。
 
@@ -24,7 +26,7 @@
 ## 竟态条件
 当一组事件的顺序的假设可能被外部的非确定性（`non-deterministic`）因素影响时，我们称之为竟态条件（`Race condition`）。当多个线程具有共享可变状态时，常常会出现竟态条件，并且线程在该状态上的操作可能会交错进行，从而导致意外的行为。虽然这是一个常见的情况，但是共享状态不需要有竟态条件。例如，客户机向服务器发送无序数据包（如 UDP 数据报）`P1`和`P2`。由于数据包可能通过不同的网络路由传输，因此服务器可能先接收到`P2`，然后接收到`P1`。如果消息不包含有关其发送顺序的信息，则服务器无法确定它们是以不同的顺序发送的。根据包（`packets`）的含义，这可能导致竟态条件。
 
-- **注释**：Akka 提供的关于在给定的两个 Actor 之间发送的消息的唯一保证是，他们的顺序始终保持不变。详见「[消息传递可靠性](https://github.com/guobinhit/akka-guide/blob/master/articles/general-concepts/message-delivery-reliability.md)」。
+- **注释**：Akka 提供的关于在给定的两个 Actor 之间发送的消息的唯一保证是，他们的顺序始终保持不变。详见「[消息传递可靠性](message-delivery-reliability.md)」。
 
 ## 非阻塞保证（进度条件）
 如前几节所讨论的，阻塞是不可取的，原因有几个，包括死锁的危险和系统中吞吐量的降低。在下面的章节中，我们将讨论具有不同强度的各种非阻塞特性。
@@ -48,7 +50,8 @@
 
 ----------
 
-**英文原文链接**：[Terminology, Concepts](https://doc.akka.io/docs/akka/current/general/terminology.html).
+[Actor系统 ](actor-systems.md)
 
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Terminology, Concepts](https://doc.akka.io/docs/akka/current/general/terminology.html).
+

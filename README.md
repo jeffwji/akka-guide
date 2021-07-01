@@ -1,6 +1,6 @@
-# Akka typed 中文指南
+# Akka typed 中文指南(Scala)
 
-该文档介绍 akka typed 的开发与使用，由于 akka typed 和 akka classic 的文档的许多部分（概念与案例）具有高度的一致性，因此文档直接借用了 https://github.com/guobinhit/akka-guide 的翻译。特此声明与感谢！
+该文档介绍 akka typed Scala 语言的开发与使用，为节约翻译的时间，该项目借助了（基于 Java 语言的 Akka classic 中文文档） https://github.com/guobinhit/akka-guide 项目的部分翻译，并在此基础上根据 Akka 官方的 Scala 语言教程重新翻译、修订而成。特此声明与感谢！
 
 
 - [Gitter Chat](https://gitter.im/akka/akka?source=orgpage)，Akka 在线交流平台；
@@ -13,7 +13,7 @@
 ## 快速入门指南 
 
 - [快速入门 Akka classic Java 指南](articles/quickstart-akka-java.md)
-- [快速入门 Akka Scala 指南](articles/quickstart-akka-scala.md)
+- [快速入门 Akka typed Scala 指南](articles/quickstart-akka-scala.md)
 
 ## 目录
 
