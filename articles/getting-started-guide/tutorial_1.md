@@ -42,7 +42,7 @@ libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion
 ## 简介
 使用 Akka 可以让你从为 Actor 系统创建基础设施和编写控制基本行为所需的初级（`low-level`）代码中解脱出来。为了理解这一点，让我们看看你在代码中创建的 Actor 与 Akka 在内部为你创建和管理的 Actor 之间的关系，Actor 的生命周期和失败处理。
 
-## Akka 的 Actor 层级
+## Akka的Actor层级
 Akka 的 Actor 总是属于父 Actor。通常，你可以通过调用`ActorContext().spawn()`来创建 Actor。创建 Actor 的 Actor 成为新创建的子 Actor 的父级。那么你可能会问，第一个 Actor 的父节点是谁？
 
 如下图所示，所有的 Actor 都有一个共同的父节点，即用户监护人(`guardian`)。它在您启动 ActorSystem 时定义并创建。正如我们在[快速入门指南中介绍的那样](../quickstart-akka-scala.md)，actor 的创建会返回一个有效的 URL引用。例如，如果我们从User guardian 中创建一个以`someActor`命名的 actor `context.spawn(someBehavior, "someActor")`，它的引用将包含 path `/user/someActor`。
@@ -123,7 +123,7 @@ Second: Actor[akka://testSystem/user/first-actor/second-actor#-1544706041]
 
 层次结构的一个重要作用是安全地管理 Actor 的生命周期。接下来，我们来考虑一下，这些知识如何帮助我们编写更好的代码。
 
-### Actor 的生命周期
+### Actor的生命周期
 Actor 在被创建时就会出现，然后在用户请求时被停止。每当一个 Actor 被停止时，它的所有子 Actor 也会被递归地停止。这种行为大大简化了资源清理，并有助于避免诸如由打开的套接字和文件引起的资源泄漏。事实上，在处理初级多线程代码时，一个通常被忽视的困难是各种并发资源的生命周期管理。
 
 要停止 Actor，建议的模式是返回 Actor 内部的 Behaviors.stopped() 来停止自身，通常调用发生在响应某些用户定义的停止消息，或者当 Actor 完成其任务时。从技术上讲，通过`context.stop(childRef)`从父级调用来停止子 Actor 是可能的，但不可能以这种方式停止任意（非子级）Actor 。

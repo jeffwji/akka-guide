@@ -18,7 +18,7 @@
 ## 目录
 
 - [安全公告](articles/security-announcements.md)
-- [入门指南](https://doc.akka.io/docs/akka/current/guide/index.html)
+- [入门指南](articles/getting-started-guide//index.md)
   - [Akka 简介](articles/getting-started-guide/introduction-to-akka.md) 
   - [为什么现代系统需要新的编程模型](articles/getting-started-guide/actors-motivation.md) 
   - [Actor 模型如何满足现代分布式系统的需求](articles/getting-started-guide/actor-intro.md)
@@ -29,12 +29,12 @@
   - [第 3 部分: 使用设备 Actors](articles/getting-started-guide/tutorial_3.md)
   - [第 4 部分: 使用设备组](articles/getting-started-guide/tutorial_4.md)
   - [第 5 部分: 查询设备组](articles/getting-started-guide/tutorial_5.md)
-- [一般概念](https://doc.akka.io/docs/akka/current/general/index.html)
+- [一般概念](articles/general-concepts/index.md)
   - [术语及概念](articles/general-concepts/terminology.md)
   - [Actor 系统](articles/general-concepts/actor-systems.md)
   - [什么是 Actor？](articles/general-concepts/actors.md)
   - [监督和监控](articles/general-concepts/supervision.md)
-  - [Actor 引用、路径和地址](articles/general-concepts/addressing.md)
+  - [Actor的引用、路径和地址](articles/general-concepts/addressing.md)
   - [位置透明](articles/general-concepts/remoting.md)
   - [Akka 和 Java 内存模型](articles/general-concepts/jmm.md)
   - [消息传递可靠性](articles/general-concepts/message-delivery-reliability.md)

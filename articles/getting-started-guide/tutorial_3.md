@@ -115,7 +115,7 @@ sealed trait Command
 final case class ReadTemperature(requestId: Long, replyTo: ActorRef[RespondTemperature]) extends Command
 final case class RespondTemperature(requestId: Long, value: Option[Double])
 ```
-## 实现设备 Actor 及其读取协议
+## 实现设备Actor及其读取协议
 
 正如我们在`Hello World`示例中了解到的，每个 Actor 都定义了它接受的消息类型。我们的设备 Actor 有责任为给定查询的响应使用相同的 ID 参数，这将使它看起来像下面这样。
 
@@ -167,7 +167,7 @@ class Device(context: ActorContext[Device.Command], groupId: String, deviceId: S
 
   在`Device`类中，`lastTemperatureReading` 的值最初设置为 None，actor 将在被查询时将它报告给对方。
 
-## 测试 Actor
+## 测试
 
 基于上面的actor，我们可以编写一个测试案例。在`com.example`项目测试树的包中，将以下代码添加到`DeviceSpec.scala`文件中。（我们使用 ScalaTest，但任何其他测试框架都可以与 Akka Testkit 一起使用）。
 
@@ -212,7 +212,7 @@ final case class RecordTemperature(requestId: Long, value: Double, replyTo: Acto
 final case class TemperatureRecorded(requestId: Long)
 ```
 
-## 具有读写消息的 Actor
+## 具有读写消息的Actor
 
 将读写协议放在一起，设备 Actor 如下所示：
 

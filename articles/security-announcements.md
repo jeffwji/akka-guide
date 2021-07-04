@@ -26,7 +26,5 @@
 
 [Java Serialization, Fixed in Akka 2.4.17 ](https://doc.akka.io/docs/akka/current/security/2017-02-10-java-serialization.html)
 
-**英文原文链接**：[Security Announcements](https://doc.akka.io/docs/akka/current/security/index.html).
-
 ----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+**英文原文链接**：[Security Announcements](https://doc.akka.io/docs/akka/current/security/index.html).

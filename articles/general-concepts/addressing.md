@@ -5,7 +5,7 @@
 
 上图显示了 Actor 系统中最重要的实体之间的关系，有关详细信息，请继续阅读。
 
-## 什么是 Actor 的引用？
+## 什么是Actor的引用？
 Actor 引用是`ActorRef`的一个子类型，其首要目的是支持将消息发送给它所代表的 Actor。每个 Actor 都可以通过`ActorContext.self`字段访问其规范（本地）引用；此引用可以包含在发送给其他actor的消息中以获取回复。
 
 根据 Actor 系统的配置，支持几种不同类型的 Actor 引用：
@@ -22,7 +22,7 @@ Actor 引用是`ActorRef`的一个子类型，其首要目的是支持将消息�
   - 有一个 Actor 引用，它不代表一个 Actor，只作为根守护者的伪监督者（`pseudo-supervisor`），我们称之为“the one who walks the bubbles of space-time（在时空的气泡中行走的人）”。
   - 在实际启动 Actor 创建工具之前启动的第一个日志记录服务是一个假 Actor 引用，它接受日志事件并将其直接打印到标准输出；它是`Logging.StandardOutLogger`。
 
-## 什么是 Actor 路径？
+## 什么是Actor路径？
 
 由于 Actor 是以严格的层次结构方式创建的，因此存在一个唯一的 Actor 名称序列，该序列通过递归地沿着子级和父级之间的监督链接向下到 Actor 系统的根来给出。这个序列可以看作是文件系统中的封闭文件夹，因此我们采用名称`path`来引用它，尽管 Actor 层次结构与文件系统层次结构有一些基本的区别。
 
@@ -50,16 +50,16 @@ Actor 引用指定一个单独的 Actor，引用的生命周期与该 Actor 的�
 
 在一些实际的文件系统中，你可能会想到一个 Actor 的“路径别名”或“符号链接”，即一个 Actor 可以使用多个路径访问。但是，你应该注意，Actor 层次结构不同于文件系统层次结构。不能自由地创建 Actor 路径（如符号链接）来引用任意的 Actor。
 
-## 如何获得 Actor 引用？
+## 如何获得Actor引用？
 关于如何获得演员引用，有两个一般类别：通过[创建Actor](../typed/actor-lifecycle.md#创建Actors)或通过[接待员](../typed/actor-discovery.md#receptionist)查找他们。
 
-## Actor 引用和路径相等
+## Actor引用和路径的等价性
 
 `ActorRef`和一个`ActorRef`对应的目标actor具有相等性。当两个 actor 引用具有相同的路径并指向相同的 actor 化身时，它们被比较为相等。指向已终止actor的引用与指向具有相同路径的另一个（重新创建的）actor的引用不相等（译者：虽然路径相同但是 actor 的标识符不相同）。但是请注意，由故障引起的 actor 的重启仍然意味着它是同一个 actor 的化身，即重启对于`ActorRef`的用户端而言时不可见的.
 
 如果您需要跟踪集合中的 actor 引用并且不关心确切的 actor 化身，您可以将`ActorPath`做为一个键，因为在比较 actor 路径时不会考虑目标 actor 的标识符。
 
-## 重用 Actor 路径
+## 重用Actor路径
 
 当一个 actor 被终止时，它的引用将指向死信邮箱，DeathWatch 将发布它的最终转换，并且一般来说它不会再次复活（因为 actor 生命周期不允许这样做）。
 
@@ -67,7 +67,7 @@ Actor 引用指定一个单独的 Actor，引用的生命周期与该 Actor 的�
 
 通过网络发送actor引用时，它由其路径来表示。因此，路径必须将向下一级actor发送消息所需的所有信息进行完全编码。这是通过在路径字符串的地址部分编码协议、主机和端口来实现的。当actor系统从远程节点接收actor路径时，它会检查该路径的地址是否与此actor系统的地址匹配，在匹配的情况下，它将被解析为actor 的本地引用。否则，它被认为是一个远程actor引用。
 
-## Actor 路径的顶级范围
+## Actor路径的顶级范围
 
 在路径层次结构的根部是根守护者，在其上可以找到所有其他actor；它的名字是`"/"`. 下一个级别包括以下内容：
 

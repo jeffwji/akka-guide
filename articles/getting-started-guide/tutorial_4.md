@@ -71,7 +71,7 @@ final case class DeviceRegistered(device: ActorRef[Device.Command])
 
 现在，我们将从头开始实现该协议。在实践中，自上向下和自下而上的方法都很有效，但是在我们的例子中，我们实使用自下而上的方法，因为它允许我们立即为新特性编写测试，而不需要模拟出稍后需要构建的部分。
 
-## 向设备 Actor 添加注册支持
+## 向设备Actor添加注册支持
 
 group actor 在注册时有一些工作要做，包括：
 
