@@ -1,143 +1,375 @@
-# 作为 FSM」的行为
+# Actor介绍
 
-对于非类型化的 Actor，有明确的支持来构建「[有限状态机](https://doc.akka.io/docs/akka/current/fsm.html)」。在 Akka 类型中不需要支持，因为用行为表示 FSM 很简单。
+您正在查看 Actor Typed API 的文档，要查看 Akka Classic 文档，请参阅[[Classic Actors](https://github.com/guobinhit/akka-guide)。
 
-为了了解如何使用 Akka 类型的 API 来建模 FSM，下面是从「[非类型化的 Actor FSM 文档](https://doc.akka.io/docs/akka/current/fsm.html)」移植的`Buncher`示例。它演示了如何：
+## 模块信息
 
-- 使用不同行为模拟状态
-- 通过将行为表示为一种方法，在每个状态下存储数据的模型
-- 实现状态超时
+要使用 Akka Actors，请在您的项目中添加以下依赖项：
 
-FSM 可以接收的事件为 Actor 可以接收的消息类型：
+```scala
+val AkkaVersion = "2.6.15"
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
+      "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test
+)
+```
 
-```java
-interface Event {}
-static final class SetTarget implements Event {
-  private final ActorRef<Batch> ref;
+Akka 模块的 Java 和 Scala DSL 都捆绑在同一个 JAR 中。为了获得流畅的开发体验，在使用 Eclipse 或 IntelliJ 等 IDE 时，您可以禁用导入器在 Scala 中工作时自动建议导入`javadsl`，反之亦然。请参阅[IDE 提示](https://doc.akka.io/docs/akka/current/additional/ide.html)。
 
-  public SetTarget(ActorRef<Batch> ref) {
-    this.ref = ref;
-  }
+| Project Info: Akka Actors (typed) |                                                              |
+| --------------------------------- | ------------------------------------------------------------ |
+| Artifact                          | com.typesafe.akka<br />akka-actor-typed<br />2.6.15<br />[Snapshots are available](https://doc.akka.io/docs/akka/current/typed/project/links.html#snapshots-repository) |
+| JDK versions                      | Adopt OpenJDK 8Adopt OpenJDK 11                              |
+| Scala versions                    | 2.12.14, 2.13.5                                              |
+| JPMS module name                  | akka.actor.typed                                             |
+| License                           | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0.html) |
+| Readiness level                   | [Supported](https://developer.lightbend.com/docs/introduction/getting-help/support-terminology.html#supported), [Lightbend Subscription](https://www.lightbend.com/lightbend-subscription) provides support  Since 2.6.0, 2019-11-06 |
+| Home page                         | https://akka.io/                                             |
+| API documentation                 | [API (Scaladoc)](https://doc.akka.io/api/akka/2.6.15/akka/actor/typed/index.html) <br /> [API (Javadoc)](https://doc.akka.io/japi/akka/2.6.15/akka/actor/typed/package-summary.html) |
+| Forums                            | [Lightbend Discuss](https://discuss.akka.io)  <br />[akka/akka Gitter channel](https://gitter.im/akka/akka) |
+| Release notes                     | [akka.io blog](https://akka.io/blog/news-archive.html)       |
+| Issues                            | [Github issues](https://github.com/akka/akka/issues)         |
+| Sources                           | https://github.com/akka/akka                                 |
 
-  public ActorRef<Batch> getRef() {
-    return ref;
-  }
-}
-final class Timeout implements Event {}
+## Akka actor
 
-static final Timeout TIMEOUT = new Timeout();
-public enum Flush implements Event {
-  FLUSH
-}
-static final class Queue implements Event {
-  private final Object obj;
+该[Actor模型](https://en.wikipedia.org/wiki/Actor_model)提供了一个编写并发和分布式系统更高的水平的抽象。它使开发人员不必显式处理锁定和线程管理，从而更容易编写正确的并发和并行系统。Actors 是由 Carl Hewitt 在 1973 年的论文中定义的，但后来被 Erlang 语言普及，例如在 Ericsson 使用它来构建高度并发和可靠的电信系统取得了巨大成功。Akka 的 Actors 的 API 借鉴了 Erlang 的一些语法。
 
-  public Queue(Object obj) {
-    this.obj = obj;
-  }
+## 第一个例子
 
-  public Object getObj() {
-    return obj;
+如果您是 Akka 的新手，您可能希望从阅读[入门指南开始](../getting-started-guide/introduction-to-akka.md)，然后回到这里了解更多信息。我们还建议您观看Akka  actor的简短[介绍视频](https://akka.io/blog/news/2019/12/03/akka-typed-actor-intro-video)。
+
+熟悉 Actor 的基础、外部和内部生态系统很有帮助，了解您可以根据需要利用和自定义哪些内容，请参阅[Actor 系统](../general-concepts/actor-systems.md)和[Actor 引用、路径和地址](../eneral-concepts/addressing.md)。
+
+正如[Actor Systems](../general-concepts/actor-systems.md)中所讨论的，Actor 是在独立的计算单元之间发送消息，但它看起来像什么？
+
+假设你已经在以下所有代码中引入了：
+
+```scala
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.LoggerOps
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
+```
+
+有了这些，我们就可以定义我们的第一个 Actor，它会互相打招呼！
+
+![你好世界1.png](https://doc.akka.io/docs/akka/current/typed/images/hello-world1.png)
+
+```scala
+object HelloWorld {
+  final case class Greet(whom: String, replyTo: ActorRef[Greeted])
+  final case class Greeted(whom: String, from: ActorRef[Greet])
+
+  def apply(): Behavior[Greet] = Behaviors.receive { (context, message) =>
+    context.log.info("Hello {}!", message.whom)
+    message.replyTo ! Greeted(message.whom, context.self)
+    Behaviors.same
   }
 }
 ```
 
-启动它需要`SetTarget`，为要传递的`Batches`设置目标；`Queue`将添加到内部队列，而`Flush`将标记突发的结束。
+这段代码定义了两种消息类型，一种用于让 Actor 向某人打招呼，另一种是 Actor 将用来确认它已经这样做了。该`Greet`类型不仅包含要问候的人的信息，还包含`ActorRef`消息发送者提供的信息，以便`HelloWorld`Actor 可以发回确认消息。
 
-非类型化 FSM 也有一个`D`（数据）类型参数。Akka 类型化不需要知道这一点，它可以通过将你的行为定义为方法来存储。
+Actor的行为在`receive`行为工厂的帮助下被定义为`Greeter`。处理下一条消息会导致新行为可能与当前行为不同。通过返回保持新的不可变状态的新行为来更新状态。在这个例子中，我们不需要更新任何状态，因此我们返回`same`，这意味着下一个行为“与当前行为相同”。
 
-```java
-interface Data {}
-final class Todo implements Data {
-  private final ActorRef<Batch> target;
-  private final List<Object> queue;
+此行为处理的消息类型声明为 `Greet` 类，这意味着该消息的参数是此类型。这就是为什么我们可以访问 `whom`和`replyTo`成员而无需使用模式匹配。通常，一个actor 处理多个特定的消息类型，所有这些类型都直接或间接地扩展自一个公共的`trait`
 
-  public Todo(ActorRef<Batch> target, List<Object> queue) {
-    this.target = target;
-    this.queue = queue;
+在最后一行，我们看到`HelloWorld` Actor 向另一个 Actor 发送消息，这是使用`!`操作符（发音为“bang”或“tell”）完成的。它是一个异步操作，不会阻塞调用者的线程。
+
+由于`replyTo`地址被声明为ActorRef[Greeted] 类型，编译器将只允许我们发送这种类型的消息，其他用法将导致编译错误。
+
+Actor 接受的消息类型以及所有回复类型定义了所说的此 Actor 的协议；在这个例子中，它是一个简单的请求-回复协议，但 Actor 可以在需要时为任意复杂的协议建模。该协议与它的行为的实现的绑定被很好地包装在一起——`HelloWorld` 对象中。
+
+正如Carl Hewitt 所说，一个 Actor 不构成 Actor（系统）——没有人交谈可能会很孤独。我们需要另一个与`Greeter`交互的 actor。让我们创建一个`HelloWorldBot`接收`Greeter`的回复，并再次额外发送一些问候消息并收集回复，直到达到给定的最大消息数。
+
+![你好-world2.png](https://doc.akka.io/docs/akka/current/typed/images/hello-world2.png)
+
+```scala
+object HelloWorldBot {
+
+  def apply(max: Int): Behavior[HelloWorld.Greeted] = {
+    bot(0, max)
   }
 
-  public ActorRef<Batch> getTarget() {
-    return target;
-  }
-
-  public List<Object> getQueue() {
-    return queue;
-  }
-
-  @Override
-  public String toString() {
-    return "Todo{" + "target=" + target + ", queue=" + queue + '}';
-  }
-
-  public Todo addElement(Object element) {
-    List<Object> nQueue = new LinkedList<>(queue);
-    nQueue.add(element);
-    return new Todo(this.target, nQueue);
-  }
-
-  public Todo copy(List<Object> queue) {
-    return new Todo(this.target, queue);
-  }
-
-  public Todo copy(ActorRef<Batch> target) {
-    return new Todo(target, this.queue);
-  }
+  private def bot(greetingCounter: Int, max: Int): Behavior[HelloWorld.Greeted] =
+    Behaviors.receive { (context, message) =>
+      val n = greetingCounter + 1
+      context.log.info2("Greeting {} for {}", n, message.whom)
+      if (n == max) {
+        Behaviors.stopped
+      } else {
+        message.from ! HelloWorld.Greet(message.whom, context.self)
+        bot(n, max)
+      }
+    }
 }
 ```
 
-每个状态都会变成一种不同的行为。不需要显式`goto`，因为 Akka 类型已经要求你返回下一个行为。
+请注意此 Actor 如何通过更改每个返回的`Greeted`的行为而不是使用任何变量来管理计数器。由于Actor 实例一次处理一条消息，因此不需要使用，例如`synchronized`或`AtomicInteger`，来做并发保护。
 
-```java
-// FSM states represented as behaviors
-private static Behavior<Event> uninitialized() {
-  return Behaviors.receive(Event.class)
-      .onMessage(
-          SetTarget.class,
-          (context, message) -> idle(new Todo(message.getRef(), Collections.emptyList())))
-      .build();
-}
+第三个Actor产生`Greeter`和`HelloWorldBot`并开始它们之间的交互。
 
-private static Behavior<Event> idle(Todo data) {
-  return Behaviors.receive(Event.class)
-      .onMessage(Queue.class, (context, message) -> active(data.addElement(message)))
-      .build();
-}
+```scala
+object HelloWorldMain {
 
-private static Behavior<Event> active(Todo data) {
-  return Behaviors.withTimers(
-      timers -> {
-        // State timeouts done with withTimers
-        timers.startSingleTimer("Timeout", TIMEOUT, Duration.ofSeconds(1));
-        return Behaviors.receive(Event.class)
-            .onMessage(Queue.class, (context, message) -> active(data.addElement(message)))
-            .onMessage(
-                Flush.class,
-                (context, message) -> {
-                  data.getTarget().tell(new Batch(data.queue));
-                  return idle(data.copy(new ArrayList<>()));
-                })
-            .onMessage(
-                Timeout.class,
-                (context, message) -> {
-                  data.getTarget().tell(new Batch(data.queue));
-                  return idle(data.copy(new ArrayList<>()));
-                })
-            .build();
-      });
+  final case class SayHello(name: String)
+
+  def apply(): Behavior[SayHello] =
+    Behaviors.setup { context =>
+      val greeter = context.spawn(HelloWorld(), "greeter")
+
+      Behaviors.receiveMessage { message =>
+        val replyTo = context.spawn(HelloWorldBot(max = 3), message.name)
+        greeter ! HelloWorld.Greet(message.name, replyTo)
+        Behaviors.same
+      }
+    }
 }
 ```
 
-要设置状态超时，请使用`Behaviors.withTimers`和`startSingleTimer`。
+现在我们想试用这个 Actor，所以我们必须启动一个 ActorSystem 来托管它：
 
-以前在`onTransition`块中所做的任何副作用（`side effects`）都直接进入行为。
+```scala
+val system: ActorSystem[HelloWorldMain.SayHello] =
+  ActorSystem(HelloWorldMain(), "hello")
+
+system ! HelloWorldMain.SayHello("World")
+system ! HelloWorldMain.SayHello("Akka")
+```
 
 
-----------
 
-**英文原文链接**：[Behaviors as Finite state machines](https://doc.akka.io/docs/akka/current/typed/fsm.html).
+我们从定义的`HelloWorldMain`的行为开始启动一个 Actor 系统，并发送两条`SayHello`消息，这将启动两个单独的`HelloWorldBot` actor 和单个的`Greeter` Actor 之间的交互。
+
+一个应用程序的每个 JVM 通常包括一个单独的`ActorSystem 并运行多个 actor。
+
+控制台输出可能如下所示：
+
+```
+[INFO] [03/13/2018 15:50:05.814] [hello-akka.actor.default-dispatcher-4] [akka://hello/user/greeter] Hello World!
+[INFO] [03/13/2018 15:50:05.815] [hello-akka.actor.default-dispatcher-4] [akka://hello/user/greeter] Hello Akka!
+[INFO] [03/13/2018 15:50:05.815] [hello-akka.actor.default-dispatcher-2] [akka://hello/user/World] Greeting 1 for World
+[INFO] [03/13/2018 15:50:05.815] [hello-akka.actor.default-dispatcher-4] [akka://hello/user/Akka] Greeting 1 for Akka
+[INFO] [03/13/2018 15:50:05.815] [hello-akka.actor.default-dispatcher-5] [akka://hello/user/greeter] Hello World!
+[INFO] [03/13/2018 15:50:05.815] [hello-akka.actor.default-dispatcher-5] [akka://hello/user/greeter] Hello Akka!
+[INFO] [03/13/2018 15:50:05.815] [hello-akka.actor.default-dispatcher-4] [akka://hello/user/World] Greeting 2 for World
+[INFO] [03/13/2018 15:50:05.815] [hello-akka.actor.default-dispatcher-5] [akka://hello/user/greeter] Hello World!
+[INFO] [03/13/2018 15:50:05.815] [hello-akka.actor.default-dispatcher-4] [akka://hello/user/Akka] Greeting 2 for Akka
+[INFO] [03/13/2018 15:50:05.816] [hello-akka.actor.default-dispatcher-5] [akka://hello/user/greeter] Hello Akka!
+[INFO] [03/13/2018 15:50:05.816] [hello-akka.actor.default-dispatcher-4] [akka://hello/user/World] Greeting 3 for World
+[INFO] [03/13/2018 15:50:05.816] [hello-akka.actor.default-dispatcher-6] [akka://hello/user/Akka] Greeting 3 for Akka
+```
+
+您还需要添加[日志依赖项](logging.md)以在运行时查看该输出。
+
+#### 这是完整的示例：
+
+```scala
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.LoggerOps
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
+
+object HelloWorld {
+  final case class Greet(whom: String, replyTo: ActorRef[Greeted])
+  final case class Greeted(whom: String, from: ActorRef[Greet])
+
+  def apply(): Behavior[Greet] = Behaviors.receive { (context, message) =>
+    println(s"Hello ${message.whom}!")
+    message.replyTo ! Greeted(message.whom, context.self)
+    Behaviors.same
+  }
+}
+
+object HelloWorldBot {
+
+  def apply(max: Int): Behavior[HelloWorld.Greeted] = {
+    bot(0, max)
+  }
+
+  private def bot(greetingCounter: Int, max: Int): Behavior[HelloWorld.Greeted] =
+    Behaviors.receive { (context, message) =>
+      val n = greetingCounter + 1
+      println(s"Greeting $n for ${message.whom}")
+      if (n == max) {
+        Behaviors.stopped
+      } else {
+        message.from ! HelloWorld.Greet(message.whom, context.self)
+        bot(n, max)
+      }
+    }
+}
+
+object HelloWorldMain {
+
+  final case class SayHello(name: String)
+
+  def apply(): Behavior[SayHello] =
+    Behaviors.setup { context =>
+      val greeter = context.spawn(HelloWorld(), "greeter")
+
+      Behaviors.receiveMessage { message =>
+        val replyTo = context.spawn(HelloWorldBot(max = 3), message.name)
+        greeter ! HelloWorld.Greet(message.name, replyTo)
+        Behaviors.same
+      }
+    }
+
+  def main(args: Array[String]): Unit = {
+    val system: ActorSystem[HelloWorldMain.SayHello] =
+      ActorSystem(HelloWorldMain(), "hello")
+
+    system ! HelloWorldMain.SayHello("World")
+    system ! HelloWorldMain.SayHello("Akka")
+  }
+}
+
+// This is run by ScalaFiddle
+HelloWorldMain.main(Array.empty)
+```
+
+## 一个更复杂的例子
+
+下一个示例更加现实，并演示了一些重要的模式：
+
+- 使用 `sealed trait` 和`case class`/`object` 来表达 Actor 可以接收的多个消息
+- 使用子 actor 处理会话
+- 通过改变行为来处理状态
+- 以类型安全的方式使用多个 Actor 来表达协议中不同的部分。
+
+![聊天室.png](https://doc.akka.io/docs/akka/current/typed/images/chat-room.png)
+
+### 函数式风格
+
+首先我们将以函数式风格展示这个例子，然后以[面向对象的风格](https://doc-akka-io.translate.goog/docs/akka/current/typed/actors.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#object-oriented-style)展示同样的例子。您选择使用哪种风格取决于品味，两种风格可以混合使用，具体取决于哪种风格最适合特定Actor。[样式指南中](style-guide.md#函数式与面向对象的风格)提供了选择的注意事项。
+
+考虑运行一个聊天室的 Actor：客户端 Actor 可以通过发送包含其用户名称的消息进行连接，然后他们可以发布消息。聊天室 Actor 会将所有发布的消息传播给所有当前连接的客户端 Actor。协议定义可能如下所示：
+
+```scala
+object ChatRoom {
+  sealed trait RoomCommand
+  final case class GetSession(screenName: String, replyTo: ActorRef[SessionEvent]) extends RoomCommand
+
+  sealed trait SessionEvent
+  final case class SessionGranted(handle: ActorRef[PostMessage]) extends SessionEvent
+  final case class SessionDenied(reason: String) extends SessionEvent
+  final case class MessagePosted(screenName: String, message: String) extends SessionEvent
+
+  sealed trait SessionCommand
+  final case class PostMessage(message: String) extends SessionCommand
+  private final case class NotifyClient(message: MessagePosted) extends SessionCommand
+}
+```
 
 
 
-----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————
+最初，客户端 Actor 只能访问允许他们迈出第一步的 。一旦建立了客户端的会话，它就会收到一条消息，其中包含解锁下一个协议步骤的消息，即发布消息。该命令将需要发送到该特定地址，该地址代表已添加到聊天室的会话。会话的另一方面是客户端通过参数显示了自己的地址，以便可以将后续事件发送给它。`ActorRef[GetSession]``SessionGranted``handle``PostMessage``replyTo``MessagePosted`
+
+这说明了 Actor 如何表达的不仅仅是 Java 对象上的方法调用的等价物。声明的消息类型及其内容描述了一个完整的协议，该协议可以涉及多个 Actor 并且可以在多个步骤中发展。下面是聊天室协议的实现：
+
+- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+
+  ​          ``
+
+- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+
+状态是通过改变行为而不是使用任何变量来管理的。
+
+当一个新`GetSession`命令进来时，我们将该客户端添加到返回行为中的列表中。然后我们还需要创建`ActorRef`将用于发布消息的会话。在本例中，我们希望创建一个非常简单的 Actor，将`PostMessage`命令重新打包为一个`PublishSessionMessage`还包含屏幕名称的命令。
+
+我们在这里声明的行为可以处理`RoomCommand`.`GetSession`已经解释过了，`PublishSessionMessage`来自会话 Actor的命令将触发将包含的聊天室消息传播到所有连接的客户端。但是我们不想赋予`PublishSessionMessage`向任意客户端发送命令的能力，我们保留我们创建的内部会话参与者的权利——否则客户端可能会伪装成完全不同的屏幕名称（想象一下`GetSession`协议包含身份验证信息以进一步保护这一点） .因此`PublishSessionMessage`具有`private`可见性，不能在`ChatRoom` object之外创建。
+
+如果我们不关心保护会话和屏幕名称之间的对应关系，那么我们可以更改协议，以便`PostMessage`删除并且所有客户端都可以发送到。在这种情况下，不需要会话参与者，我们可以使用. 在这种情况下，类型检查会奏效，因为它的类型参数是逆变的，这意味着我们可以在任何需要an的地方使用a——这是有道理的，因为前者比后者会说更多的语言。相反会出现问题，因此传递一个where是 required 将导致类型错误。`ActorRef[PublishSessionMessage]``context.self``ActorRef[-T]``ActorRef[RoomCommand]``ActorRef[PublishSessionMessage]``ActorRef[PublishSessionMessage]``ActorRef[RoomCommand]`
+
+#### 试一试
+
+为了查看这个聊天室的运行情况，我们需要编写一个可以使用它的客户端 Actor：
+
+- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+
+  ​          ``
+
+- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+
+根据这个行为，我们可以创建一个 Actor，它将接受一个聊天室会话，发布一条消息，等待它发布，然后终止。最后一步需要改变行为的能力，我们需要从正常的运行行为过渡到终止状态。这就是为什么这里我们不返回`same`，如上所述，而是另一个特殊值`stopped`。
+
+由于`SessionEvent`是一个密封的 trait，如果我们忘记处理其中一个子类型，Scala 编译器会警告我们；在这种情况下，它提醒我们，`SessionGranted`我们也可能会收到一个`SessionDenied`事件。
+
+现在要尝试一下，我们必须同时启动聊天室和 gabbler，当然我们在 Actor 系统中执行此操作。由于只能有一个用户监护人，我们可以从 gabbler 开始聊天室（我们不想要——这会使逻辑复杂化）或从聊天室开始 gabbler（这是荒谬的），或者我们都从第三个演员——我们唯一明智的选择：
+
+- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+
+  ​          ``
+
+- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+
+传统上，我们称`Main`Actor 为它是什么，它直接对应`main`于传统 Java 应用程序中的方法。这个Actor会自己执行它的工作，我们不需要从外部发送消息，所以我们声明它的类型是。 Actors 不仅接收外部消息，还收到某些系统事件的通知，即所谓的信号。为了访问那些我们选择使用行为装饰器来实现这个特定的。将针对信号（ 的子类）或用户消息的函数调用提供的函数。`NotUsed``receive``onSignal``Signal``onMessage`
+
+这个特定的`Main`Actor 是使用 来创建的`Behaviors.setup`，它就像一个行为的工厂。行为实例的创建被推迟到actor 启动之后，而不是`Behaviors.receive`在actor 运行之前立即创建行为实例。工厂函数`setup`传入`ActorContext`as 参数，例如可以用于生成子actor。这个`Main`Actor 创建了聊天室和 gabbler 并启动了它们之间的会话，当 gabbler 完成时，`Terminated`由于调用`context.watch`了它，我们将收到事件。这允许我们关闭 Actor 系统：当`Main`Actor 终止时，没有什么可做的了。
+
+因此与创建演员系统后，`Main`演员的`Behavior`我们可以让`main`方法返回时，`ActorSystem`将继续运行，而JVM的生命，直到根演员停止。
+
+### 面向对象的风格
+
+上面的示例使用了函数式编程风格，您将一个函数传递给一个工厂，然后该工厂构造一个行为，对于有状态的 Actor，这意味着将不可变状态作为参数传递，并在需要对更改的状态执行操作时切换到新行为。另一种表达方式是更加面向对象的风格，其中定义了actor行为的具体类，并将可变状态作为字段保存在其中。
+
+您选择使用哪种风格取决于品味，两种风格可以混合使用，具体取决于哪种风格最适合特定演员。[样式指南中](https://doc-akka-io.translate.goog/docs/akka/current/typed/style-guide.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#functional-versus-object-oriented-style)提供了选择的注意事项。
+
+#### 抽象行为API
+
+定义基于类的人行为延伸开始在那里是信息的行为将接受的类型。`akka.actor.typed.scaladsl.AbstractBehavior[T]` `T`
+
+让我们重复[上面一个更复杂的例子中](https://doc-akka-io.translate.goog/docs/akka/current/typed/actors.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#a-more-complex-example)的聊天室示例[，](https://doc-akka-io.translate.goog/docs/akka/current/typed/actors.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#a-more-complex-example)但使用`AbstractBehavior`. 与actor交互的协议看起来是一样的：
+
+- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+
+  ​          ``
+
+- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+
+最初，客户端 Actor 只能访问允许他们迈出第一步的 。一旦建立了客户端的会话，它就会收到一条消息，其中包含解锁下一个协议步骤的消息，即发布消息。该命令将需要发送到该特定地址，该地址代表已添加到聊天室的会话。会话的另一方面是客户端通过参数显示了自己的地址，以便可以将后续事件发送给它。`ActorRef[GetSession]``SessionGranted``handle``PostMessage``replyTo``MessagePosted`
+
+这说明了 Actor 如何表达的不仅仅是 Java 对象上的方法调用等价物。声明的消息类型及其内容描述了一个完整的协议，它可以涉及多个 Actor 并且可以在多个步骤中发展。下面是`AbstractBehavior`聊天室协议的实现：
+
+- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+
+  ​          ``
+
+- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+
+状态通过类中的字段进行管理，就像使用常规的面向对象类一样。由于状态是可变的，我们从不返回与消息逻辑不同的行为，但可以返回`AbstractBehavior`实例本身 ( `this`) 作为用于处理传入的下一条消息的行为。我们也可以返回`Behavior.same`以实现相同的目的。
+
+
+
+还可以返回一个新的不同的`AbstractBehavior`，例如在有限状态机（FSM）中表示不同的状态，或者使用功能行为工厂之一将面向对象与生命周期不同部分的功能风格相结合相同的 Actor 行为。
+
+当一个新`GetSession`命令进来时，我们将该客户端添加到当前会话列表中。然后我们还需要创建`ActorRef`将用于发布消息的会话。在本例中，我们希望创建一个非常简单的 Actor，将`PostMessage`命令重新打包为一个`PublishSessionMessage`还包含屏幕名称的命令。
+
+要实现为会话生成子级的逻辑，我们需要访问`ActorContext`.这是在创建行为时作为构造函数参数注入的，请注意我们如何在工厂方法中结合`AbstractBehavior`使用`Behaviors.setup`来执行此操作。`apply`
+
+我们在这里声明的行为可以处理`RoomCommand`.`GetSession`已经解释过了，`PublishSessionMessage`来自会话 Actor的命令将触发将包含的聊天室消息传播到所有连接的客户端。但是我们不想赋予`PublishSessionMessage`向任意客户端发送命令的能力，我们保留我们创建的内部会话参与者的权利——否则客户端可能会伪装成完全不同的屏幕名称（想象一下`GetSession`协议包含身份验证信息以进一步保护这一点） .因此`PublishSessionMessage`具有`private`可见性，不能在`ChatRoom` object之外创建。
+
+如果我们不关心保护会话和屏幕名称之间的对应关系，那么我们可以更改协议，以便`PostMessage`删除并且所有客户端都可以发送到。在这种情况下，不需要会话参与者，我们可以使用. 在这种情况下，类型检查会奏效，因为它的类型参数是逆变的，这意味着我们可以在任何需要an的地方使用a——这是有道理的，因为前者比后者会说更多的语言。相反会出现问题，因此传递一个where是 required 将导致类型错误。`ActorRef[PublishSessionMessage]``context.self``ActorRef[-T]``ActorRef[RoomCommand]``ActorRef[PublishSessionMessage]``ActorRef[PublishSessionMessage]``ActorRef[RoomCommand]`
+
+#### 试试看
+
+为了查看这个聊天室的运行情况，我们需要编写一个可以使用它的客户端 Actor ，对于这个无状态的`AbstractBehavior`Actor，使用它没有多大意义，所以让我们重用上面示例中的函数式风格 gabbler：
+
+- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+
+  ​          ``
+
+- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+
+现在要尝试一下，我们必须同时启动聊天室和 gabbler，当然我们在 Actor 系统中执行此操作。由于只能有一个用户监护人，我们可以从 gabbler 开始聊天室（我们不想要——这会使逻辑复杂化）或从聊天室开始 gabbler（这是荒谬的），或者我们都从第三个演员——我们唯一明智的选择：
+
+- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+
+  ​          ``
+
+- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+
+传统上，我们称`Main`Actor 为它是什么，它直接对应`main`于传统 Java 应用程序中的方法。这个Actor会自己执行它的工作，我们不需要从外部发送消息，所以我们声明它的类型是。 Actors 不仅接收外部消息，还收到某些系统事件的通知，即所谓的信号。为了访问那些我们选择使用行为装饰器来实现这个特定的。将针对信号（ 的子类）或用户消息的函数调用提供的函数。`NotUsed``receive``onSignal``Signal``onMessage`
+
+这个特定的`Main`Actor 是使用 来创建的`Behaviors.setup`，它就像一个行为的工厂。行为实例的创建被推迟到actor 启动之后，而不是`Behaviors.receive`在actor 运行之前立即创建行为实例。工厂函数`setup`传入`ActorContext`as 参数，例如可以用于生成子actor。这个`Main`Actor 创建了聊天室和 gabbler 并启动了它们之间的会话，当 gabbler 完成时，`Terminated`由于调用`context.watch`了它，我们将收到事件。这允许我们关闭 Actor 系统：当`Main`Actor 终止时，没有什么可做的了。
+
+因此与创建演员系统后，`Main`演员的`Behavior`我们可以让`main`方法返回时，`ActorSystem`将继续运行，而JVM的生命，直到根演员停止。
