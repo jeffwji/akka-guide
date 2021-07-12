@@ -5,24 +5,69 @@
 
 ```xml
 <!-- Maven -->
-<dependency>
-  <groupId>com.typesafe.akka</groupId>
-  <artifactId>akka-actor-typed_2.12</artifactId>
-  <version>2.5.23</version>
-</dependency>
+<properties>
+  <scala.binary.version>2.13</scala.binary.version>
+</properties>
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-bom_${scala.binary.version}</artifactId>
+      <version>2.6.15</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+<dependencies>
+  <dependency>
+    <groupId>com.typesafe.akka</groupId>
+    <artifactId>akka-actor-typed_${scala.binary.version}</artifactId>
+  </dependency>
+</dependencies>
 
 <!-- Gradle -->
+def versions = [
+  ScalaBinary: "2.13"
+]
 dependencies {
-  compile group: 'com.typesafe.akka', name: 'akka-actor-typed_2.12', version: '2.5.23'
+  implementation platform("com.typesafe.akka:akka-bom_${versions.ScalaBinary}:2.6.15")
+
+  implementation "com.typesafe.akka:akka-actor-typed_${versions.ScalaBinary}"
 }
 
 <!-- sbt -->
-libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % "2.5.23"
+val AkkaVersion = "2.6.15"
+libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion
+```
+
+## 介绍
+
+Actor 是一种有状态的资源，必须显式启动和停止。
+
+需要注意的是，Actor 在不再被引用时不会自动停止，每个创建的 Actor 也必须显式销毁。唯一的简化是停止父 Actor 时也会递归地停止该父级创建的所有子 Actor。`ActorSystem`关闭时，所有Actor也会自动停止。
+
+```
+Note:
+
+ActorSystem 是一种用于分配线程的重量级结构，所以请为每个逻辑应用程序创建一个。通常每个JVM 进程只需要一个 ActorSystem。
 ```
 
 ## 创建Actors
 
 一个 Actor 可以创建或生成任意数量的子 Actor，而子 Actor 又可以生成自己的子 Actor，从而形成一个 Actor 层次。「[ActorSystem](https://doc.akka.io/japi/akka/2.5/?akka/actor/typed/ActorSystem.html)」承载层次结构，并且在`ActorSystem`层次结构的顶部只能有一个根 Actor。一个子 Actor 的生命周期是与其父 Actor 联系在一起的，一个子 Actor 可以在任何时候停止自己或被停止，但永远不能比父 Actor 活得更久。
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### 守护者 Actor
 根 Actor，也称为守护者 Actor，与`ActorSystem`一起创建。发送到 Actor 系统的消息被定向到根 Actor。根 Actor 是由用于创建`ActorSystem`的行为定义的，在下面的示例中名为`HelloWorldMain.main`：
@@ -269,13 +314,9 @@ system.tell(new JobControl.GracefulShutdown());
 system.getWhenTerminated().toCompletableFuture().get(3, TimeUnit.SECONDS);
 ```
 
+----------
+
 
 
 ----------
-
 **英文原文链接**：[Actor lifecycle](https://doc.akka.io/docs/akka/current/typed/actor-lifecycle.html).
-
-
-
-----------
-———— ☆☆☆ —— [返回 -> Akka 中文指南 <- 目录](https://github.com/guobinhit/akka-guide/blob/master/README.md) —— ☆☆☆ ————

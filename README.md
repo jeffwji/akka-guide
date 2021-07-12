@@ -68,7 +68,7 @@
   - [跨多个数据中心集群](articles/clustering/cluster-dc.md) 
   - [多虚拟机测试](articles/clustering/multi-jvm-testing.md) 
   - [多节点测试](articles/clustering/multi-node-testing.md) 
-- [流](https://doc.akka.io/docs/akka/current/stream/index.html)
+- [流](articles/stream/index.html)
 - [网络](https://doc.akka.io/docs/akka/current/index-network.html)
   - [远程处理](https://doc.akka.io/docs/akka/current/remoting.html) 
   - [远程处理（代号动脉）](https://doc.akka.io/docs/akka/current/remoting-artery.html)

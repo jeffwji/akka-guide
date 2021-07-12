@@ -68,7 +68,7 @@ object HelloWorld {
 }
 ```
 
-这段代码定义了两种消息类型，一种用于让 Actor 向某人打招呼，另一种是 Actor 将用来确认它已经这样做了。该`Greet`类型不仅包含要问候的人的信息，还包含`ActorRef`消息发送者提供的信息，以便`HelloWorld`Actor 可以发回确认消息。
+这段代码定义了两种消息类型，一种用于让 Actor 向某人打招呼，另一种是 Actor 将用来确认它已经这样做了。该`Greet`类型不仅包含要问候的人的信息，还包含代表提供消息的发送者的`ActorRef`的信息，以便`HelloWorld`Actor 可以发回确认消息。
 
 Actor的行为在`receive`行为工厂的帮助下被定义为`Greeter`。处理下一条消息会导致新行为可能与当前行为不同。通过返回保持新的不可变状态的新行为来更新状态。在这个例子中，我们不需要更新任何状态，因此我们返回`same`，这意味着下一个行为“与当前行为相同”。
 
@@ -78,7 +78,7 @@ Actor的行为在`receive`行为工厂的帮助下被定义为`Greeter`。处理
 
 由于`replyTo`地址被声明为ActorRef[Greeted] 类型，编译器将只允许我们发送这种类型的消息，其他用法将导致编译错误。
 
-Actor 接受的消息类型以及所有回复类型定义了所说的此 Actor 的协议；在这个例子中，它是一个简单的请求-回复协议，但 Actor 可以在需要时为任意复杂的协议建模。该协议与它的行为的实现的绑定被很好地包装在一起——`HelloWorld` 对象中。
+Actor 接受的消息类型以及所有回复类型定义了所说的此 Actor 的协议；在这个例子中，它是一个简单的请求-回复协议，但 Actor 可以在需要时为任意复杂的协议建模。该协议与它的行为的绑定被很好地包装在一起——`HelloWorld` 对象中。
 
 正如Carl Hewitt 所说，一个 Actor 不构成 Actor（系统）——没有人交谈可能会很孤独。我们需要另一个与`Greeter`交互的 actor。让我们创建一个`HelloWorldBot`接收`Greeter`的回复，并再次额外发送一些问候消息并收集回复，直到达到给定的最大消息数。
 
@@ -229,9 +229,9 @@ HelloWorldMain.main(Array.empty)
 
 ## 一个更复杂的例子
 
-下一个示例更加现实，并演示了一些重要的模式：
+下一个示例更加现实，并且它演示了一些重要的范式：
 
-- 使用 `sealed trait` 和`case class`/`object` 来表达 Actor 可以接收的多个消息
+- 使用 `sealed trait` 和`case class`/`object` 来表达Actor 如何接收多个消息。
 - 使用子 actor 处理会话
 - 通过改变行为来处理状态
 - 以类型安全的方式使用多个 Actor 来表达协议中不同的部分。
@@ -240,7 +240,7 @@ HelloWorldMain.main(Array.empty)
 
 ### 函数式风格
 
-首先我们将以函数式风格展示这个例子，然后以[面向对象的风格](https://doc-akka-io.translate.goog/docs/akka/current/typed/actors.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#object-oriented-style)展示同样的例子。您选择使用哪种风格取决于品味，两种风格可以混合使用，具体取决于哪种风格最适合特定Actor。[样式指南中](style-guide.md#函数式与面向对象的风格)提供了选择的注意事项。
+首先我们将以函数式风格展示这个例子，然后以[面向对象的风格](https://doc-akka-io.translate.goog/docs/akka/current/typed/actors.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#object-oriented-style)展示同样的例子。您选择使用哪种风格取决于品味，两种风格可以混合使用，具体取决于哪种风格最适合特定Actor。[样式指南中](style-guide.md#函数式与面向对象的风格)提供了做出选择所需的注意事项。
 
 考虑运行一个聊天室的 Actor：客户端 Actor 可以通过发送包含其用户名称的消息进行连接，然后他们可以发布消息。聊天室 Actor 会将所有发布的消息传播给所有当前连接的客户端 Actor。协议定义可能如下所示：
 
@@ -260,116 +260,275 @@ object ChatRoom {
 }
 ```
 
+最初，客户端 Actor 只能访问`ActorRef[GetSession]`以允许他们迈出第一步的 。一旦客户端建立了会话，它就会收到一条`SessionGranted`消息，其中包含解锁下一个协议步骤的消息，即发布消息。`PostMessage` 命令将被发送到该聊天室中该会话所指向的特定地址。会话的另一作用是客户端通过参数`replyTo`传达了自己的地址，以便可以接收发送给它的后续事件。
 
+该流程展示了 Actor 可以表达比仅仅做为 Java 对象方法调用等价物更多的方面。声明的消息类型及其内容描述了一个完整的协议，该协议可以涉及多个 Actor 并且可以在多个步骤中传递。下面是聊天室协议的实现：
 
-最初，客户端 Actor 只能访问允许他们迈出第一步的 。一旦建立了客户端的会话，它就会收到一条消息，其中包含解锁下一个协议步骤的消息，即发布消息。该命令将需要发送到该特定地址，该地址代表已添加到聊天室的会话。会话的另一方面是客户端通过参数显示了自己的地址，以便可以将后续事件发送给它。`ActorRef[GetSession]``SessionGranted``handle``PostMessage``replyTo``MessagePosted`
+```scala
+object ChatRoom {
+  private final case class PublishSessionMessage(screenName: String, message: String) extends RoomCommand
 
-这说明了 Actor 如何表达的不仅仅是 Java 对象上的方法调用的等价物。声明的消息类型及其内容描述了一个完整的协议，该协议可以涉及多个 Actor 并且可以在多个步骤中发展。下面是聊天室协议的实现：
+  def apply(): Behavior[RoomCommand] =
+    chatRoom(List.empty)
 
-- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+  private def chatRoom(sessions: List[ActorRef[SessionCommand]]): Behavior[RoomCommand] =
+    Behaviors.receive { (context, message) =>
+      message match {
+        case GetSession(screenName, client) =>
+          // create a child actor for further interaction with the client
+          val ses = context.spawn(
+            session(context.self, screenName, client),
+            name = URLEncoder.encode(screenName, StandardCharsets.UTF_8.name))
+          client ! SessionGranted(ses)
+          chatRoom(ses :: sessions)
+        case PublishSessionMessage(screenName, message) =>
+          val notification = NotifyClient(MessagePosted(screenName, message))
+          sessions.foreach(_ ! notification)
+          Behaviors.same
+      }
+    }
 
-  ​          ``
-
-- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+  private def session(
+      room: ActorRef[PublishSessionMessage],
+      screenName: String,
+      client: ActorRef[SessionEvent]): Behavior[SessionCommand] =
+    Behaviors.receiveMessage {
+      case PostMessage(message) =>
+        // from client, publish to others via the room
+        room ! PublishSessionMessage(screenName, message)
+        Behaviors.same
+      case NotifyClient(message) =>
+        // published from the room
+        client ! message
+        Behaviors.same
+    }
+}
+```
 
 状态是通过改变行为而不是使用任何变量来管理的。
 
 当一个新`GetSession`命令进来时，我们将该客户端添加到返回行为中的列表中。然后我们还需要创建`ActorRef`将用于发布消息的会话。在本例中，我们希望创建一个非常简单的 Actor，将`PostMessage`命令重新打包为一个`PublishSessionMessage`还包含屏幕名称的命令。
 
-我们在这里声明的行为可以处理`RoomCommand`.`GetSession`已经解释过了，`PublishSessionMessage`来自会话 Actor的命令将触发将包含的聊天室消息传播到所有连接的客户端。但是我们不想赋予`PublishSessionMessage`向任意客户端发送命令的能力，我们保留我们创建的内部会话参与者的权利——否则客户端可能会伪装成完全不同的屏幕名称（想象一下`GetSession`协议包含身份验证信息以进一步保护这一点） .因此`PublishSessionMessage`具有`private`可见性，不能在`ChatRoom` object之外创建。
+我们已经解释过了在这里声明的 `Behavior` 可以处理子类型`RoomCommand`.`GetSession`和会话 Actor的`PublishSessionMessage`命令，该命令将其包含的聊天室消息传播到所有连接的客户端。但是我们不想赋予任意客户端发送`PublishSessionMessage`命令的能力，我们将此权力保留在所创建的内部会话 actor 中——否则客户端可能会伪装成完全不同的名称（想象一下`GetSession` 协议将包含身份验证信息以进一步确保安全）。因此`PublishSessionMessage`具有`private`可见性，不能在`ChatRoom` object 之外创建。
 
-如果我们不关心保护会话和屏幕名称之间的对应关系，那么我们可以更改协议，以便`PostMessage`删除并且所有客户端都可以发送到。在这种情况下，不需要会话参与者，我们可以使用. 在这种情况下，类型检查会奏效，因为它的类型参数是逆变的，这意味着我们可以在任何需要an的地方使用a——这是有道理的，因为前者比后者会说更多的语言。相反会出现问题，因此传递一个where是 required 将导致类型错误。`ActorRef[PublishSessionMessage]``context.self``ActorRef[-T]``ActorRef[RoomCommand]``ActorRef[PublishSessionMessage]``ActorRef[PublishSessionMessage]``ActorRef[RoomCommand]`
+如果我们不关心会话安全和用户名称之间的对应关系的话，那么我们可以更改协议，将`PostMessage`删除并且所有客户端都可以通过`ActorRef[PublishSessionMessage]`发送消息。在这种情况下，不需要会话Actor，我们可以在这种情况下使用`context.self` ，类型检查将会认为有效，因为`ActorRef[-T]`的类型参数是逆变的，这意味着我们可以在任何需要`ActorRef[PublishSessionMessage]`的地方使用`ActorRef[RoomCommand]`——这是合理的，因为后者比后者包含更宽泛的表达能力。相反则会出现问题，也就是说传递一个`ActorRef[PublishSessionMessage]`给需要`ActorRef[RoomCommand]` 的地方将导致类型错误。
 
-#### 试一试
+**试运行**
 
-为了查看这个聊天室的运行情况，我们需要编写一个可以使用它的客户端 Actor：
+为了查看这个聊天室的运行情况，我们需要编写一个客户端 Actor来使用它的：
 
-- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+```scala
+object Gabbler {
+  import ChatRoom._
 
-  ​          ``
+  def apply(): Behavior[SessionEvent] =
+    Behaviors.setup { context =>
+      Behaviors.receiveMessage {
+        case SessionGranted(handle) =>
+          handle ! PostMessage("Hello World!")
+          Behaviors.same
+        case MessagePosted(screenName, message) =>
+          context.log.info2("message has been posted by '{}': {}", screenName, message)
+          Behaviors.stopped
+      }
+    }
+}
+```
 
-- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+根据这个Behavior，我们创建了一个 Actor，它接受一个聊天室会话，然后发布一条消息并等待它发布完成，然后终止。最后需要有改变Behavior的能力，我们需要从正常的运行Behavior过渡到终止Behavior。这就是为什么这里我们不返回`same`，如上所述，而是另一个特殊值`stopped`。
 
-根据这个行为，我们可以创建一个 Actor，它将接受一个聊天室会话，发布一条消息，等待它发布，然后终止。最后一步需要改变行为的能力，我们需要从正常的运行行为过渡到终止状态。这就是为什么这里我们不返回`same`，如上所述，而是另一个特殊值`stopped`。
+由于`SessionEvent`是一个密封的` trait`，因此如果我们忘记处理其中一个子类型，Scala 编译器将会警告我们；在这个例子中，它提醒我们除了`SessionGranted`我们还可能会收到一个`SessionDenied`事件。
 
-由于`SessionEvent`是一个密封的 trait，如果我们忘记处理其中一个子类型，Scala 编译器会警告我们；在这种情况下，它提醒我们，`SessionGranted`我们也可能会收到一个`SessionDenied`事件。
+现在要运行的话，我们必须同时启动聊天室和 gabbler，当然我们需要在 Actor 系统中执行此操作。由于只能有一个 `user` 监护人，我们可以从 gabbler 启动聊天室（但是我们不想这么做——因为这会使逻辑复杂化）或从聊天室启动 gabbler（这也是荒谬的），或者——唯一明智的选择——从一个第三方 Actor 开始：
 
-现在要尝试一下，我们必须同时启动聊天室和 gabbler，当然我们在 Actor 系统中执行此操作。由于只能有一个用户监护人，我们可以从 gabbler 开始聊天室（我们不想要——这会使逻辑复杂化）或从聊天室开始 gabbler（这是荒谬的），或者我们都从第三个演员——我们唯一明智的选择：
+```scala
+object Main {
+  def apply(): Behavior[NotUsed] =
+    Behaviors.setup { context =>
+      val chatRoom = context.spawn(ChatRoom(), "chatroom")
+      val gabblerRef = context.spawn(Gabbler(), "gabbler")
+      context.watch(gabblerRef)
+      chatRoom ! ChatRoom.GetSession("ol’ Gabbler", gabblerRef)
 
-- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+      Behaviors.receiveSignal {
+        case (_, Terminated(_)) =>
+          Behaviors.stopped
+      }
+    }
 
-  ​          ``
+  def main(args: Array[String]): Unit = {
+    ActorSystem(Main(), "ChatRoomDemo")
+  }
 
-- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+}
+```
 
-传统上，我们称`Main`Actor 为它是什么，它直接对应`main`于传统 Java 应用程序中的方法。这个Actor会自己执行它的工作，我们不需要从外部发送消息，所以我们声明它的类型是。 Actors 不仅接收外部消息，还收到某些系统事件的通知，即所谓的信号。为了访问那些我们选择使用行为装饰器来实现这个特定的。将针对信号（ 的子类）或用户消息的函数调用提供的函数。`NotUsed``receive``onSignal``Signal``onMessage`
+传统上，我们将这个Actor 称为 `Main`，它直接对应于传统 Java 应用程序中的`main`方法。这个 Actor 会自己执行它的工作，我们不需要从外部给它发送消息，所以我们声明它的类型是`NotUsed`。 Actors 不仅接收外部消息，还收到某些系统事件的通知，即所谓的信号是那些那些我们使用 `receive` 行为装饰器来实现的那些特定的消息。信号（`Signal`的子类型）或用户消息触发`onMessage`函数时，`onSignal`函数将被调用。
 
-这个特定的`Main`Actor 是使用 来创建的`Behaviors.setup`，它就像一个行为的工厂。行为实例的创建被推迟到actor 启动之后，而不是`Behaviors.receive`在actor 运行之前立即创建行为实例。工厂函数`setup`传入`ActorContext`as 参数，例如可以用于生成子actor。这个`Main`Actor 创建了聊天室和 gabbler 并启动了它们之间的会话，当 gabbler 完成时，`Terminated`由于调用`context.watch`了它，我们将收到事件。这允许我们关闭 Actor 系统：当`Main`Actor 终止时，没有什么可做的了。
+这个特定的 `Main` Actor 我们使用 `Behaviors.setup`来创建，它就像一个行为的工厂。行为实例的创建被推迟到actor 启动之后，而`Behaviors.receive`则相反，它在 actor 运行前立即创建行为实例。工厂函数`setup`将`ActorContext`作为参数传入，它可以例如用于生成子 actor。这个`Main` Actor 创建了聊天室和 gabbler 并启动了它们之间的会话，当 gabbler 终止时，我们将收到`Terminated`事件，因为我们用`context.watch`观察了它，这允许我们安全地关闭 Actor 系统：当`Main`Actor 终止时就没有什么遗留的事情需要做了。
 
-因此与创建演员系统后，`Main`演员的`Behavior`我们可以让`main`方法返回时，`ActorSystem`将继续运行，而JVM的生命，直到根演员停止。
+因此当 Actor 系统和`Main` Actor 的`Behavior`一起被创建后，我们可以让`main`方法直接返回，`ActorSystem`将继续保持运行，而JVM将持续存活，直到根 actor终止。
 
 ### 面向对象的风格
 
-上面的示例使用了函数式编程风格，您将一个函数传递给一个工厂，然后该工厂构造一个行为，对于有状态的 Actor，这意味着将不可变状态作为参数传递，并在需要对更改的状态执行操作时切换到新行为。另一种表达方式是更加面向对象的风格，其中定义了actor行为的具体类，并将可变状态作为字段保存在其中。
+上面的示例使用了函数式编程风格，您将一个函数传递给一个工厂，然后该工厂构造一个行为，对于有状态的 Actor，这意味着将不可变状态作为参数传递，并在需要对更改的状态执行操作时切换到新行为。另一种可选的实现方式是更加面向对象的风格的，这种风格采用具体类来定义 Actor，并将可变状态作为字段保存在其中。
 
-您选择使用哪种风格取决于品味，两种风格可以混合使用，具体取决于哪种风格最适合特定演员。[样式指南中](https://doc-akka-io.translate.goog/docs/akka/current/typed/style-guide.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#functional-versus-object-oriented-style)提供了选择的注意事项。
+您选择使用哪种风格取决于您的品味，两种风格可以混合使用，具体取决于哪种风格最适合特定Actor。[样式指南中](style-guide.md#函数式与面向对象式)提供了选择的注意事项。
 
-#### 抽象行为API
+#### AbstractBehavior API
 
-定义基于类的人行为延伸开始在那里是信息的行为将接受的类型。`akka.actor.typed.scaladsl.AbstractBehavior[T]` `T`
+定义一个基于类的Actor西药扩展自` akka.actor.typed.scaladsl.AbstractBehavior[T]`，其中 `T` 是能够接收的消息类型。
 
-让我们重复[上面一个更复杂的例子中](https://doc-akka-io.translate.goog/docs/akka/current/typed/actors.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#a-more-complex-example)的聊天室示例[，](https://doc-akka-io.translate.goog/docs/akka/current/typed/actors.html?_x_tr_sl=auto&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=ajax,elem#a-more-complex-example)但使用`AbstractBehavior`. 与actor交互的协议看起来是一样的：
+让我们用 `AbstractBehavior`重复上面[一个更复杂的例子中](#一个更复杂的例子)的聊天室示例。与actor交互的协议看起来将会是一样的：
 
-- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+```scala
+object ChatRoom {
+  sealed trait RoomCommand
+  final case class GetSession(screenName: String, replyTo: ActorRef[SessionEvent]) extends RoomCommand
 
-  ​          ``
+  sealed trait SessionEvent
+  final case class SessionGranted(handle: ActorRef[PostMessage]) extends SessionEvent
+  final case class SessionDenied(reason: String) extends SessionEvent
+  final case class MessagePosted(screenName: String, message: String) extends SessionEvent
 
-- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+  sealed trait SessionCommand
+  final case class PostMessage(message: String) extends SessionCommand
+  private final case class NotifyClient(message: MessagePosted) extends SessionCommand
+}
+```
 
-最初，客户端 Actor 只能访问允许他们迈出第一步的 。一旦建立了客户端的会话，它就会收到一条消息，其中包含解锁下一个协议步骤的消息，即发布消息。该命令将需要发送到该特定地址，该地址代表已添加到聊天室的会话。会话的另一方面是客户端通过参数显示了自己的地址，以便可以将后续事件发送给它。`ActorRef[GetSession]``SessionGranted``handle``PostMessage``replyTo``MessagePosted`
+最初，客户端 Actor 只接受一个 `ActorRef[GetSession]`以允许他们迈出第一步的 。一旦一个客户端会话被建立，它就会收到一条`SessionGranted`消息，其中包含解锁下一个协议步骤的消息，即发布消息。`PostMessage` 命令将被发送到该聊天室中该会话所指向的特定地址。会话的另一作用是客户端通过参数`replyTo`传达了自己的地址，以便可以接收发送给它的后续事件。
 
-这说明了 Actor 如何表达的不仅仅是 Java 对象上的方法调用等价物。声明的消息类型及其内容描述了一个完整的协议，它可以涉及多个 Actor 并且可以在多个步骤中发展。下面是`AbstractBehavior`聊天室协议的实现：
+该流程展示了 Actor 可以表达比仅仅做为 Java 对象方法调用等价物更多的方面。声明的消息类型及其内容描述了一个完整的协议，该协议可以涉及多个 Actor 并且可以在多个步骤中传递。下面是基于`AbstractBehavior`的聊天室协议的实现：
 
-- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+```scala
+object ChatRoom {
+  private final case class PublishSessionMessage(screenName: String, message: String) extends RoomCommand
 
-  ​          ``
+  def apply(): Behavior[RoomCommand] =
+    Behaviors.setup(context => new ChatRoomBehavior(context))
 
-- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+  class ChatRoomBehavior(context: ActorContext[RoomCommand]) extends AbstractBehavior[RoomCommand](context) {
+    private var sessions: List[ActorRef[SessionCommand]] = List.empty
+
+    override def onMessage(message: RoomCommand): Behavior[RoomCommand] = {
+      message match {
+        case GetSession(screenName, client) =>
+          // create a child actor for further interaction with the client
+          val ses = context.spawn(
+            SessionBehavior(context.self, screenName, client),
+            name = URLEncoder.encode(screenName, StandardCharsets.UTF_8.name))
+          client ! SessionGranted(ses)
+          sessions = ses :: sessions
+          this
+        case PublishSessionMessage(screenName, message) =>
+          val notification = NotifyClient(MessagePosted(screenName, message))
+          sessions.foreach(_ ! notification)
+          this
+      }
+    }
+  }
+
+  object SessionBehavior {
+    def apply(
+        room: ActorRef[PublishSessionMessage],
+        screenName: String,
+        client: ActorRef[SessionEvent]): Behavior[SessionCommand] =
+      Behaviors.setup(ctx => new SessionBehavior(ctx, room, screenName, client))
+  }
+
+  private class SessionBehavior(
+      context: ActorContext[SessionCommand],
+      room: ActorRef[PublishSessionMessage],
+      screenName: String,
+      client: ActorRef[SessionEvent])
+      extends AbstractBehavior[SessionCommand](context) {
+
+    override def onMessage(msg: SessionCommand): Behavior[SessionCommand] =
+      msg match {
+        case PostMessage(message) =>
+          // from client, publish to others via the room
+          room ! PublishSessionMessage(screenName, message)
+          Behaviors.same
+        case NotifyClient(message) =>
+          // published from the room
+          client ! message
+          Behaviors.same
+      }
+  }
+}
+```
 
 状态通过类中的字段进行管理，就像使用常规的面向对象类一样。由于状态是可变的，我们从不返回与消息逻辑不同的行为，但可以返回`AbstractBehavior`实例本身 ( `this`) 作为用于处理传入的下一条消息的行为。我们也可以返回`Behavior.same`以实现相同的目的。
 
+还可以返回一个新的不同的`AbstractBehavior`，例如在有限状态机（FSM）中表示不同的状态，或者使用某个函数式行为工厂将面向对象与函数式风格结合起来，来实现同一个 Actor 的生命周期中的不同部分。
 
+当一个新`GetSession` 命令被接收到时，我们将该客户端添加到当前会话列表中。然后我们还需要创建会话的`ActorRef`用于发布消息。在本例中，我们创建一个非常简单的 Actor，用于将`PostMessage`命令和用户名重新打包到一个`PublishSessionMessage`命令中。
 
-还可以返回一个新的不同的`AbstractBehavior`，例如在有限状态机（FSM）中表示不同的状态，或者使用功能行为工厂之一将面向对象与生命周期不同部分的功能风格相结合相同的 Actor 行为。
+要实现为会话生成孩子的逻辑，我们们需要访问 ActorContext。这是在创建行为时作为构造函数参数注入的，请注意我们如何在`apply`工厂方法中结合使用`Behaviors.setup`和`AbstractBehavior`来执行此操作的。
 
-当一个新`GetSession`命令进来时，我们将该客户端添加到当前会话列表中。然后我们还需要创建`ActorRef`将用于发布消息的会话。在本例中，我们希望创建一个非常简单的 Actor，将`PostMessage`命令重新打包为一个`PublishSessionMessage`还包含屏幕名称的命令。
+我们在这里所声明的Behavior可以处理已经解释过的`RoomCommand`.`GetSession`，和来自会话 Actor的`PublishSessionMessage`命令，该命令将其包含的聊天室消息传播到所有连接的客户端。但是我们不想赋予任意客户端发送`PublishSessionMessage`命令的能力，我们将此权力保留在所创建的内部会话 actor 中——否则客户端可能会伪装成完全不同的名称（想象一下`GetSession` 协议将包含身份验证信息以进一步确保安全）。因此`PublishSessionMessage`具有`private`可见性，不能在`ChatRoom` object 之外创建。
 
-要实现为会话生成子级的逻辑，我们需要访问`ActorContext`.这是在创建行为时作为构造函数参数注入的，请注意我们如何在工厂方法中结合`AbstractBehavior`使用`Behaviors.setup`来执行此操作。`apply`
+如果我们不关心会话安全和用户名称之间的对应关系的话，那么我们可以更改协议，将`PostMessage`删除并且所有客户端都可以通过`ActorRef[PublishSessionMessage]`发送消息。在这种情况下，不需要会话Actor，我们可以在这种情况下使用`context.self` ，类型检查将会认为有效，因为`ActorRef[-T]`的类型参数是逆变的，这意味着我们可以在任何需要`ActorRef[PublishSessionMessage]`的地方使用`ActorRef[RoomCommand]`——这是合理的，因为后者比后者包含更宽泛的表达能力。相反则会出现问题，也就是说传递一个`ActorRef[PublishSessionMessage]`给需要`ActorRef[RoomCommand]` 的地方将导致类型错误。
 
-我们在这里声明的行为可以处理`RoomCommand`.`GetSession`已经解释过了，`PublishSessionMessage`来自会话 Actor的命令将触发将包含的聊天室消息传播到所有连接的客户端。但是我们不想赋予`PublishSessionMessage`向任意客户端发送命令的能力，我们保留我们创建的内部会话参与者的权利——否则客户端可能会伪装成完全不同的屏幕名称（想象一下`GetSession`协议包含身份验证信息以进一步保护这一点） .因此`PublishSessionMessage`具有`private`可见性，不能在`ChatRoom` object之外创建。
+#### **试运行**
 
-如果我们不关心保护会话和屏幕名称之间的对应关系，那么我们可以更改协议，以便`PostMessage`删除并且所有客户端都可以发送到。在这种情况下，不需要会话参与者，我们可以使用. 在这种情况下，类型检查会奏效，因为它的类型参数是逆变的，这意味着我们可以在任何需要an的地方使用a——这是有道理的，因为前者比后者会说更多的语言。相反会出现问题，因此传递一个where是 required 将导致类型错误。`ActorRef[PublishSessionMessage]``context.self``ActorRef[-T]``ActorRef[RoomCommand]``ActorRef[PublishSessionMessage]``ActorRef[PublishSessionMessage]``ActorRef[RoomCommand]`
+为了查看这个聊天室的运行情况，我们需要编写一个可以使用它的客户端 Actor ，对于这个无状态的 Actor，使用`AbstractBehavior` 没有多大意义，所以让我们重用上面示例中的函数式风格 gabbler：
 
-#### 试试看
+```scala
+object Gabbler {
+  import ChatRoom._
 
-为了查看这个聊天室的运行情况，我们需要编写一个可以使用它的客户端 Actor ，对于这个无状态的`AbstractBehavior`Actor，使用它没有多大意义，所以让我们重用上面示例中的函数式风格 gabbler：
+  def apply(): Behavior[SessionEvent] =
+    Behaviors.setup { context =>
+      Behaviors.receiveMessage {
+        case SessionDenied(reason) =>
+          context.log.info("cannot start chat room session: {}", reason)
+          Behaviors.stopped
+        case SessionGranted(handle) =>
+          handle ! PostMessage("Hello World!")
+          Behaviors.same
+        case MessagePosted(screenName, message) =>
+          context.log.info2("message has been posted by '{}': {}", screenName, message)
+          Behaviors.stopped
+      }
+    }
+```
 
-- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+现在要运行的话，我们必须同时启动聊天室和 gabbler，当然我们需要在 Actor 系统中执行此操作。由于只能有一个 `user` 监护人，我们可以从 gabbler 启动聊天室（但是我们不想这么做——因为这会使逻辑复杂化）或从聊天室启动 gabbler（这也是荒谬的），或者——唯一明智的选择——从一个第三方 Actor 开始：
 
-  ​          ``
+```scala
+object Main {
+  def apply(): Behavior[NotUsed] =
+    Behaviors.setup { context =>
+      val chatRoom = context.spawn(ChatRoom(), "chatroom")
+      val gabblerRef = context.spawn(Gabbler(), "gabbler")
+      context.watch(gabblerRef)
+      chatRoom ! ChatRoom.GetSession("ol’ Gabbler", gabblerRef)
 
-- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+      Behaviors.receiveSignal {
+        case (_, Terminated(_)) =>
+          Behaviors.stopped
+      }
+    }
 
-现在要尝试一下，我们必须同时启动聊天室和 gabbler，当然我们在 Actor 系统中执行此操作。由于只能有一个用户监护人，我们可以从 gabbler 开始聊天室（我们不想要——这会使逻辑复杂化）或从聊天室开始 gabbler（这是荒谬的），或者我们都从第三个演员——我们唯一明智的选择：
+  def main(args: Array[String]): Unit = {
+    ActorSystem(Main(), "ChatRoomDemo")
+  }
 
-- [          斯卡拉         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab0)
+}
+```
 
-  ​          ``
+传统上，我们将这个Actor 称为 `Main`，它直接对应于传统 Java 应用程序中的`main`方法。这个 Actor 会自己执行它的工作，我们不需要从外部给它发送消息，所以我们声明它的类型是`NotUsed`。 Actors 不仅接收外部消息，还收到某些系统事件的通知，即所谓的信号是那些那些我们使用 `receive` 行为装饰器来实现的那些特定的消息。信号（`Signal`的子类型）或用户消息触发`onMessage`函数时，`onSignal`函数将被调用。
 
-- [          爪哇         ](https://doc.akka.io/docs/akka/current/typed/actors.html#tab1)
+这个特定的 `Main` Actor 我们使用 `Behaviors.setup`来创建，它就像一个行为的工厂。行为实例的创建被推迟到actor 启动之后，而`Behaviors.receive`则相反，它在 actor 运行前立即创建行为实例。工厂函数`setup`将`ActorContext`作为参数传入，它可以例如用于生成子 actor。这个`Main` Actor 创建了聊天室和 gabbler 并启动了它们之间的会话，当 gabbler 终止时，我们将收到`Terminated`事件，因为我们用`context.watch`观察了它，这允许我们安全地关闭 Actor 系统：当`Main`Actor 终止时就没有什么遗留的事情需要做了。
 
-传统上，我们称`Main`Actor 为它是什么，它直接对应`main`于传统 Java 应用程序中的方法。这个Actor会自己执行它的工作，我们不需要从外部发送消息，所以我们声明它的类型是。 Actors 不仅接收外部消息，还收到某些系统事件的通知，即所谓的信号。为了访问那些我们选择使用行为装饰器来实现这个特定的。将针对信号（ 的子类）或用户消息的函数调用提供的函数。`NotUsed``receive``onSignal``Signal``onMessage`
+因此当 Actor 系统和`Main` Actor 的`Behavior`一起被创建后，我们可以让`main`方法直接返回，`ActorSystem`将继续保持运行，而JVM将持续存活，直到根 actor终止。
 
-这个特定的`Main`Actor 是使用 来创建的`Behaviors.setup`，它就像一个行为的工厂。行为实例的创建被推迟到actor 启动之后，而不是`Behaviors.receive`在actor 运行之前立即创建行为实例。工厂函数`setup`传入`ActorContext`as 参数，例如可以用于生成子actor。这个`Main`Actor 创建了聊天室和 gabbler 并启动了它们之间的会话，当 gabbler 完成时，`Terminated`由于调用`context.watch`了它，我们将收到事件。这允许我们关闭 Actor 系统：当`Main`Actor 终止时，没有什么可做的了。
+----
 
-因此与创建演员系统后，`Main`演员的`Behavior`我们可以让`main`方法返回时，`ActorSystem`将继续运行，而JVM的生命，直到根演员停止。
+[Actor 生命周期](actor-lifecycle.md)
+
+----
+
+[原文链接](https://doc.akka.io/docs/akka/current/typed/actors.html)
