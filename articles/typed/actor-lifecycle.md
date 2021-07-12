@@ -48,7 +48,7 @@ Actor 是一种有状态的资源，必须显式启动和停止。
 需要注意的是，Actor 在不再被引用时不会自动停止，每个创建的 Actor 也必须显式销毁。唯一的简化是停止父 Actor 时也会递归地停止该父级创建的所有子 Actor。`ActorSystem`关闭时，所有Actor也会自动停止。
 
 ```
-Note:
+提示:
 
 ActorSystem 是一种用于分配线程的重量级结构，所以请为每个逻辑应用程序创建一个。通常每个JVM 进程只需要一个 ActorSystem。
 ```
@@ -57,28 +57,67 @@ ActorSystem 是一种用于分配线程的重量级结构，所以请为每个�
 
 一个 Actor 可以创建或生成任意数量的子 Actor，而子 Actor 又可以生成自己的子 Actor，从而形成一个 Actor 层次。「[ActorSystem](https://doc.akka.io/japi/akka/2.5/?akka/actor/typed/ActorSystem.html)」承载层次结构，并且在`ActorSystem`层次结构的顶部只能有一个根 Actor。一个子 Actor 的生命周期是与其父 Actor 联系在一起的，一个子 Actor 可以在任何时候停止自己或被停止，但永远不能比父 Actor 活得更久。
 
+### ActorContext
 
+可以出于多种目的访问 ActorContext，例如：
 
+- 监督和产生子Actor
+- 观察其它Actor并接收`Terminated(otherActor)`事件当被观察的Actor永久停止时。
+- 记录日志
+- 创建消息适配器
+- 与另一个Actor的请求-响应交互（ask）
+- 访问`self` ActorRef
 
+如果一个行为需要使用`ActorContext`，例如使用 `context.self`产生子actor，可以通过在`Behaviors.setup`中使用包装构造来获得：
 
+```scala
+object HelloWorldMain {
 
+  final case class SayHello(name: String)
 
+  def apply(): Behavior[SayHello] =
+    Behaviors.setup { context =>
+      val greeter = context.spawn(HelloWorld(), "greeter")
 
+      Behaviors.receiveMessage { message =>
+        val replyTo = context.spawn(HelloWorldBot(max = 3), message.name)
+        greeter ! HelloWorld.Greet(message.name, replyTo)
+        Behaviors.same
+      }
+    }
+}
+```
 
+#### ActorContext 的线程安全性
 
+`ActorContext`中的许多方法不是线程安全的，并且
 
-
+- 不能被`scala.concurrent.Future`中的回调线程访问
+- 不得在多个 actor 实例之间共享
+- 只能在普通actor消息处理线程中使用
 
 ### 守护者 Actor
-根 Actor，也称为守护者 Actor，与`ActorSystem`一起创建。发送到 Actor 系统的消息被定向到根 Actor。根 Actor 是由用于创建`ActorSystem`的行为定义的，在下面的示例中名为`HelloWorldMain.main`：
+顶级 Actor，也称为 user 守护者 Actor，与`ActorSystem`一起创建。发送到 Actor 系统的消息被定向到根 Actor。根 Actor 是由用于创建`ActorSystem`的行为生成的，例如下面的示例中名为`HelloWorldMain`的Actor：
 
 ```java
-final ActorSystem<HelloWorldMain.Start> system =
-    ActorSystem.create(HelloWorldMain.main, "hello");
+val system: ActorSystem[HelloWorldMain.SayHello] =
+  ActorSystem(HelloWorldMain(), "hello")
 
-system.tell(new HelloWorldMain.Start("World"));
-system.tell(new HelloWorldMain.Start("Akka"));
+system ! HelloWorldMain.SayHello("World")
+system ! HelloWorldMain.SayHello("Akka")
 ```
+
+对于非常简单的应用程序，监护人可能包含实际的应用程序逻辑和消息处理。但是一旦应用程序将处理多个问题，监护人就应该只负责引导，生成子系统，并监视它们的生命周期。
+
+一旦监护人Actor停止，这也将停止`ActorSystem`.
+
+当`ActorSystem.terminate`被调用时，[协调关闭](coordinated-shutdown.md)流程将按特定顺序停止Actor和服务。
+
+
+
+
+
+
 
 ### 繁衍子级
 
