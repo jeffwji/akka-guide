@@ -99,7 +99,7 @@ object HelloWorldMain {
 ### 守护者 Actor
 顶级 Actor，也称为 user 守护者 Actor，与`ActorSystem`一起创建。发送到 Actor 系统的消息被定向到根 Actor。根 Actor 是由用于创建`ActorSystem`的行为生成的，例如下面的示例中名为`HelloWorldMain`的Actor：
 
-```java
+```scala
 val system: ActorSystem[HelloWorldMain.SayHello] =
   ActorSystem(HelloWorldMain(), "hello")
 
@@ -113,249 +113,244 @@ system ! HelloWorldMain.SayHello("Akka")
 
 当`ActorSystem.terminate`被调用时，[协调关闭](coordinated-shutdown.md)流程将按特定顺序停止Actor和服务。
 
-
-
-
-
-
-
 ### 繁衍子级
 
-子 Actor 是由「[ActorContext](https://doc.akka.io/japi/akka/2.5/?akka/actor/typed/javadsl/ActorContext.html)」的“繁殖”产生的。在下面的示例中，当根 Actor 启动时，它生成一个由行为`HelloWorld.greeter`描述的子 Actor。此外，当根 Actor 收到`Start`消息时，它将创建由行为`HelloWorldBot.bot`定义的子 Actor：
+子 Actor 是由「[ActorContext](https://doc.akka.io/japi/akka/2.5/?akka/actor/typed/javadsl/ActorContext.html)」“繁殖（`spawn`）”产生的。在下面的示例中，当根 Actor 启动时，它生成一个由`HelloWorld`行为描述的子 Actor。此外，当根 Actor 收到`SayHello`消息时，它将创建由`HelloWorldBot`行为定义的子 Actor：
 
-```java
-public abstract static class HelloWorldMain {
-  private HelloWorldMain() {}
+```scala
+object HelloWorldMain {
 
-  public static class Start {
-    public final String name;
+  final case class SayHello(name: String)
 
-    public Start(String name) {
-      this.name = name;
+  def apply(): Behavior[SayHello] =
+    Behaviors.setup { context =>
+      val greeter = context.spawn(HelloWorld(), "greeter")
+
+      Behaviors.receiveMessage { message =>
+        val replyTo = context.spawn(HelloWorldBot(max = 3), message.name)
+        greeter ! HelloWorld.Greet(message.name, replyTo)
+        Behaviors.same
+      }
     }
-  }
 
-  public static final Behavior<Start> main =
-      Behaviors.setup(
-          context -> {
-            final ActorRef<HelloWorld.Greet> greeter =
-                context.spawn(HelloWorld.greeter, "greeter");
-
-            return Behaviors.receiveMessage(
-                message -> {
-                  ActorRef<HelloWorld.Greeted> replyTo =
-                      context.spawn(HelloWorldBot.bot(0, 3), message.name);
-                  greeter.tell(new HelloWorld.Greet(message.name, replyTo));
-                  return Behaviors.same();
-                });
-          });
 }
 ```
 
-要在生成 Actor 时指定调度器，请使用「[DispatcherSelector](https://doc.akka.io/japi/akka/2.5/?akka/actor/typed/DispatcherSelector.html)」。如果未指定，则 Actor 将使用默认调度器，有关详细信息，请参阅「[默认调度器](https://doc.akka.io/docs/akka/current/dispatchers.html#default-dispatcher)」。
+要在生成 Actor 时指定调度器，请使用「[DispatcherSelector](DispatcherSelector.md)」。如果未指定，则 Actor 将使用默认调度器，有关详细信息，请参阅「[默认调度器](dispatchers.md#default-dispatcher)」。
 
-```java
-public static final Behavior<Start> main =
-    Behaviors.setup(
-        context -> {
-          final String dispatcherPath = "akka.actor.default-blocking-io-dispatcher";
+```scala
+def apply(): Behavior[SayHello] =
+  Behaviors.setup { context =>
+    val dispatcherPath = "akka.actor.default-blocking-io-dispatcher"
 
-          Props props = DispatcherSelector.fromConfig(dispatcherPath);
-          final ActorRef<HelloWorld.Greet> greeter =
-              context.spawn(HelloWorld.greeter, "greeter", props);
+    val props = DispatcherSelector.fromConfig(dispatcherPath)
+    val greeter = context.spawn(HelloWorld(), "greeter", props)
 
-          return Behaviors.receiveMessage(
-              message -> {
-                ActorRef<HelloWorld.Greeted> replyTo =
-                    context.spawn(HelloWorldBot.bot(0, 3), message.name);
-                greeter.tell(new HelloWorld.Greet(message.name, replyTo));
-                return Behaviors.same();
-              });
-        });
+    Behaviors.receiveMessage { message =>
+      val replyTo = context.spawn(HelloWorldBot(max = 3), message.name)
+
+      greeter ! HelloWorld.Greet(message.name, replyTo)
+      Behaviors.same
+    }
+  }
 ```
 
-通过参阅「[Actors](https://doc.akka.io/docs/akka/current/typed/actors.html#introduction)」，以了解上述示例。
+通过参阅「[Actors](actors.md#introduction)」，以了解上述示例。
 
 ### SpawnProtocol
 
-守护者 Actor 应该负责初始化任务并创建应用程序的初始 Actor，但有时你可能希望从守护者 Actor 的外部生成新的 Actor。例如，每个 HTTP 请求创建一个 Actor。
+守护者(Guardian) Actor 应该负责初始化任务并创建应用程序的初始 Actor，但有时你可能希望从guardian actor 的外部生成新的 Actor。例如，为每个 HTTP 请求创建一个 Actor。
 
-这并不难你在行为中的实现，但是由于这是一个常见的模式，因此有一个预定义的消息协议和行为的实现。它可以用作`ActorSystem`的守护者 Actor，可能与`Behaviors.setup`结合使用以启动一些初始任务或 Actor。然后，可以通过调用`SpawnProtocol.Spawn`从外部启动子 Actor，生成到系统的 Actor 引用。使用`ask`时，这类似于`ActorSystem.actorOf`如何在非类型化 Actor 中使用，不同之处在于`ActorRef`的`CompletionStage`返回。
+在您的行为（Behavior）中实现这并不难，因为这是一个常见的模式，所以有一个预定义的消息协议（`SpawnProtocol.Command`）和行为的实现（`SpawnProtocol`）可以用作`ActorSystem`的守护者 Actor，可以与`Behaviors.setup`结合使用以启动一些初始任务或 Actor。然后，可以通过`tell`或 `ask`来调用具有系统 Actor引用的 `SpawnProtocol.Spawn`从而从外部生成子Actor。使用`ask`时，这类似于在经典 Actor 中使用`ActorSystem.actorOf`，不同之处在于它返回一个 `Future`的`ActorRef`。
 
 守护者行为可定义为：
 
-```java
-import akka.actor.typed.Behavior;
-import akka.actor.typed.SpawnProtocol;
-import akka.actor.typed.javadsl.Behaviors;
+```scala
+import akka.actor.typed.Behavior
+import akka.actor.typed.SpawnProtocol
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.LoggerOps
 
-public abstract static class HelloWorldMain {
-  private HelloWorldMain() {}
+object HelloWorldMain {
+  def apply(): Behavior[SpawnProtocol.Command] =
+    Behaviors.setup { context =>
+      // Start initial tasks
+      // context.spawn(...)
 
-  public static final Behavior<SpawnProtocol> main =
-      Behaviors.setup(
-          context -> {
-            // Start initial tasks
-            // context.spawn(...)
-
-            return SpawnProtocol.behavior();
-          });
+      SpawnProtocol()
+    }
 }
 ```
 
-而`ActorSystem`可以用这种`main`行为来创建，并生成其他 Actor：
+而`ActorSystem`可以在`main`的行为中来创建，并生成其他 Actor：
 
-```java
-import akka.actor.typed.ActorRef;
-import akka.actor.typed.ActorSystem;
-import akka.actor.typed.Props;
-import akka.actor.typed.javadsl.AskPattern;
-import akka.util.Timeout;
+```scala
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Props
+import akka.util.Timeout
 
-final ActorSystem<SpawnProtocol> system = ActorSystem.create(HelloWorldMain.main, "hello");
-final Duration timeout = Duration.ofSeconds(3);
 
-CompletionStage<ActorRef<HelloWorld.Greet>> greeter =
-    AskPattern.ask(
-        system,
-        replyTo ->
-            new SpawnProtocol.Spawn<>(HelloWorld.greeter, "greeter", Props.empty(), replyTo),
-        timeout,
-        system.scheduler());
+implicit val system: ActorSystem[SpawnProtocol.Command] =
+  ActorSystem(HelloWorldMain(), "hello")
 
-Behavior<HelloWorld.Greeted> greetedBehavior =
-    Behaviors.receive(
-        (context, message) -> {
-          context.getLog().info("Greeting for {} from {}", message.whom, message.from);
-          return Behaviors.stopped();
-        });
+// needed in implicit scope for ask (?)
+import akka.actor.typed.scaladsl.AskPattern._
+implicit val ec: ExecutionContext = system.executionContext
+implicit val timeout: Timeout = Timeout(3.seconds)
 
-CompletionStage<ActorRef<HelloWorld.Greeted>> greetedReplyTo =
-    AskPattern.ask(
-        system,
-        replyTo -> new SpawnProtocol.Spawn<>(greetedBehavior, "", Props.empty(), replyTo),
-        timeout,
-        system.scheduler());
+val greeter: Future[ActorRef[HelloWorld.Greet]] =
+  system.ask(SpawnProtocol.Spawn(behavior = HelloWorld(), name = "greeter", props = Props.empty, _))
 
-greeter.whenComplete(
-    (greeterRef, exc) -> {
-      if (exc == null) {
-        greetedReplyTo.whenComplete(
-            (greetedReplyToRef, exc2) -> {
-              if (exc2 == null) {
-                greeterRef.tell(new HelloWorld.Greet("Akka", greetedReplyToRef));
-              }
-            });
-      }
-    });
+val greetedBehavior = Behaviors.receive[HelloWorld.Greeted] { (context, message) =>
+  context.log.info2("Greeting for {} from {}", message.whom, message.from)
+  Behaviors.stopped
+}
+
+val greetedReplyTo: Future[ActorRef[HelloWorld.Greeted]] =
+  system.ask(SpawnProtocol.Spawn(greetedBehavior, name = "", props = Props.empty, _))
+
+for (greeterRef <- greeter; replyToRef <- greetedReplyTo) {
+  greeterRef ! HelloWorld.Greet("Akka", replyToRef)
+}
 ```
 
-还可以在 Actor 层次结构的其他位置使用`SpawnProtocol`。它不必是根守护者 Actor。
+可以在 Actor 层次结构的其他位置使用`SpawnProtocol`，而不是必须在根守护者 Actor 中。
+
+[Actor发现](actor-discovery.md)中描述了一种查找正在运行的actor的方法。
 
 ## 停止 Actors
 
 Actor 可以通过返回`Behaviors.stopped`作为下一个行为来停止自己。
 
-通过使用父 Actor 的`ActorContext`的`stop`方法，在子 Actor 完成当前消息的处理后，可以强制停止子 Actor。只有子 Actor 才能这样被阻止。
+通过使用父 Actor 的`ActorContext`的`stop`方法，可以在子 Actor 完成当前消息的处理后强制停止它。只有当它是子 Actor 才能这样做。
 
-子 Actor 将作为父级关闭过程的一部分被停止。
+所有的子 Actor 在父级停止时也会被停止。
 
-停止 Actor 产生的`PostStop`信号可用于清除资源。请注意，可以选择将处理此类`PostStop`信号的行为定义为`Behaviors.stopped`的参数。如果 Actor 在突然停止时能优雅地停止自己，则需要不同的操作。
+当一个 Actor 停止时，它将接收到`PostStop`信号以便于它清除资源。
 
 下面是一个示例：
 
-```java
-import java.util.concurrent.TimeUnit;
-
-import akka.actor.typed.ActorSystem;
-import akka.actor.typed.Behavior;
-import akka.actor.typed.PostStop;
-import akka.actor.typed.javadsl.Behaviors;
+```scala
+import akka.actor.typed.Behavior
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorSystem, PostStop }
 
 
-public abstract static class JobControl {
-  // no instances of this class, it's only a name space for messages
-  // and static methods
-  private JobControl() {}
+object MasterControlProgram {
+  sealed trait Command
+  final case class SpawnJob(name: String) extends Command
+  case object GracefulShutdown extends Command
 
-  static interface JobControlLanguage {}
+  def apply(): Behavior[Command] = {
+    Behaviors
+      .receive[Command] { (context, message) =>
+        message match {
+          case SpawnJob(jobName) =>
+            context.log.info("Spawning job {}!", jobName)
+            context.spawn(Job(jobName), name = jobName)
+            Behaviors.same
+          case GracefulShutdown =>
+            context.log.info("Initiating graceful shutdown...")
+            // Here it can perform graceful stop (possibly asynchronous) and when completed
+            // return `Behaviors.stopped` here or after receiving another message.
+            Behaviors.stopped
+        }
+      }
+      .receiveSignal {
+        case (context, PostStop) =>
+          context.log.info("Master Control Program stopped")
+          Behaviors.same
+      }
+  }
+}
 
-  public static final class SpawnJob implements JobControlLanguage {
-    public final String name;
+object Job {
+  sealed trait Command
 
-    public SpawnJob(String name) {
-      this.name = name;
+  def apply(name: String): Behavior[Command] = {
+    Behaviors.receiveSignal[Command] {
+      case (context, PostStop) =>
+        context.log.info("Worker {} stopped", name)
+        Behaviors.same
     }
   }
-
-  public static final class GracefulShutdown implements JobControlLanguage {
-
-    public GracefulShutdown() {}
-  }
-
-  public static final Behavior<JobControlLanguage> mcpa =
-      Behaviors.receive(JobControlLanguage.class)
-          .onMessage(
-              SpawnJob.class,
-              (context, message) -> {
-                context.getSystem().log().info("Spawning job {}!", message.name);
-                context.spawn(Job.job(message.name), message.name);
-                return Behaviors.same();
-              })
-          .onSignal(
-              PostStop.class,
-              (context, signal) -> {
-                context.getSystem().log().info("Master Control Programme stopped");
-                return Behaviors.same();
-              })
-          .onMessage(
-              GracefulShutdown.class,
-              (context, message) -> {
-                context.getSystem().log().info("Initiating graceful shutdown...");
-
-                // perform graceful stop, executing cleanup before final system termination
-                // behavior executing cleanup is passed as a parameter to Actor.stopped
-                return Behaviors.stopped(
-                    () -> {
-                      context.getSystem().log().info("Cleanup!");
-                    });
-              })
-          .onSignal(
-              PostStop.class,
-              (context, signal) -> {
-                context.getSystem().log().info("Master Control Programme stopped");
-                return Behaviors.same();
-              })
-          .build();
 }
-
-public static class Job {
-  public static Behavior<JobControl.JobControlLanguage> job(String name) {
-    return Behaviors.receiveSignal(
-        (context, PostStop) -> {
-          context.getSystem().log().info("Worker {} stopped", name);
-          return Behaviors.same();
-        });
-  }
-}
-
-final ActorSystem<JobControl.JobControlLanguage> system =
-    ActorSystem.create(JobControl.mcpa, "B6700");
-
-system.tell(new JobControl.SpawnJob("a"));
-system.tell(new JobControl.SpawnJob("b"));
-
-// sleep here to allow time for the new actors to be started
-Thread.sleep(100);
-
-system.tell(new JobControl.GracefulShutdown());
-
-system.getWhenTerminated().toCompletableFuture().get(3, TimeUnit.SECONDS);
 ```
 
-----------
+## 关注Actor
 
+为了在另一个 actor 终止（永久停止，而不是临时故障和重启）时得到通知，一个 actor 可以使用`watch`关注另一个actor。它将在被关注的actor终止（参见[停止actor](actor-lifecycle.md#stopping-actors)）时接收到[`Terminated`](Terminated.md)信号。
 
+```scala
+object MasterControlProgram {
+  sealed trait Command
+  final case class SpawnJob(name: String) extends Command
+
+  def apply(): Behavior[Command] = {
+    Behaviors
+      .receive[Command] { (context, message) =>
+        message match {
+          case SpawnJob(jobName) =>
+            context.log.info("Spawning job {}!", jobName)
+            val job = context.spawn(Job(jobName), name = jobName)
+            context.watch(job)
+            Behaviors.same
+        }
+      }
+      .receiveSignal {
+        case (context, Terminated(ref)) =>
+          context.log.info("Job stopped: {}", ref.path.name)
+          Behaviors.same
+      }
+  }
+}
+```
+
+`watch`is的替代方法`watchWith`，它允许指定自定义消息而不是`Terminated`。这通常比使用`watch`和`Terminated`信号更可取，因为可以在消息中包含附加信息，以便稍后在接收时使用。
+
+与上面类似的示例，但使用`watchWith`以便在任务完成时回复最初的请求者。
+
+```scala
+object MasterControlProgram {
+  sealed trait Command
+  final case class SpawnJob(name: String, replyToWhenDone: ActorRef[JobDone]) extends Command
+  final case class JobDone(name: String)
+  private final case class JobTerminated(name: String, replyToWhenDone: ActorRef[JobDone]) extends Command
+
+  def apply(): Behavior[Command] = {
+    Behaviors.receive { (context, message) =>
+      message match {
+        case SpawnJob(jobName, replyToWhenDone) =>
+          context.log.info("Spawning job {}!", jobName)
+          val job = context.spawn(Job(jobName), name = jobName)
+          context.watchWith(job, JobTerminated(jobName, replyToWhenDone))
+          Behaviors.same
+        case JobTerminated(jobName, replyToWhenDone) =>
+          context.log.info("Job stopped: {}", jobName)
+          replyToWhenDone ! JobDone(jobName)
+          Behaviors.same
+      }
+    }
+  }
+}
+```
+
+请注意`replyToWhenDone` 是如何包含在`watchWith`消息中，然后在接收`JobTerminated`消息时被使用的。
+
+被关注的 Actor 可以是任意 `ActorRef`，它不必象上面的例子中必须是子actor。
+
+应当注意，终止消息的生成与注册和终止发生的顺序无关。特别是，即使被关注的actor在注册时已经被终止，关注的actor也会收到终止消息。
+
+多次注册不一定会导致生成多条消息，但不能保证只收到一条这样的消息：如果被关注的 actor 的终止消息生成并加入队列之后，直到它被处理之前，另一个注册到达，那么第二条消息也将被排队，因为对一个已经终止的actor的关注会导致立即生成终止的消息。
+
+也可以使用 `context.unwatch(target)`来取消对其他actor存活状态的关注。即使终止的消息已经在邮箱中排队，这也有效；调用`unwatch`之后，该actor 的终止消息将不再被处理。
+
+当被关注的 actor 被从[Cluster](cluster.md) 中删除不再做为一个节点存在时，也会发送终止消息。
+
+----
+
+[交互模式 ](interaction-patterns.md)
 
 ----------
 **英文原文链接**：[Actor lifecycle](https://doc.akka.io/docs/akka/current/typed/actor-lifecycle.html).

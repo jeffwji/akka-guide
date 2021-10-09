@@ -39,7 +39,7 @@ import java.nio.file.Paths
 
 
 
-还有一个对象用来启动 Akka `ActorSystem`和执行您的代码。将`ActorSystem`定义为隐式使其可被自动注入流，而无需在运行它们时手动传递它：
+还有一个对象用来启动 Akka `ActorSystem` 和执行您的代码。将`ActorSystem`定义为隐式使其可被自动注入流，而无需在运行它们时手动传递它：
 
 ```scala
 object Main extends App {
@@ -137,14 +137,14 @@ val tweets: Source[Tweet, NotUsed] = Source(
 
 ## 可重复使用的部件
 
-Akka Streams 的优点之一——也是其他流库不提供的——不仅源可以像蓝图一样重用，所有其他元素也可以如此。我们可以将写入文件的`Sink`和将从（源）传入的字符串转换成`ByteString`所需的预处理步骤打包在一起做成可重用部件，在 Akka Streams 中，这称为 `Flow`。用于表达这样一个流的“语言”是从左到右的（就像简单的英语一样），因此它（的左边）需要一个“开放”的输入做为其源：
+Akka Streams 的优点之一——也是其他流库不提供的——不仅源可以像蓝图一样重用，所有其他元素也可以如此。我们可以将写入文件的`Sink`和将从`Source`传入的字符串转换成`ByteString`所需的预处理步骤打包在一起做成可重用部件，在 Akka Streams 中，这称为 `Flow`。用于表达这样一个流的“语言”是从左到右的（就像简单的英语一样），因此它（的左边）需要一个“开放”的输入做为其源：
 
 ```scala
 def lineSink(filename: String): Sink[String, Future[IOResult]] =
   Flow[String].map(s => ByteString(s + "\n")).toMat(FileIO.toPath(Paths.get(filename)))(Keep.right)
 ```
 
-我们将每个字符串转换为`ByteString`并以此为 `Flow` 处理的起点，然后将其提供给我们之前学习的文件写入类`Sink`。由此导出的蓝图是`Sink[String, Future[IOResult]]` ，这意味着它接受字符串作为其输入，并且将在物化时创建 `Future[IOResult]` 类型的辅助信息（当我们将 Source 或 Flow 进行串联操作时，辅助信息的类型——称为“物化值”——由最左边的起点给出；并且预期 `FileIO.toPath` Sink 将会提供该类型，为此我们需要告知以`Keep.right`参数）
+我们将每个字符串转换为`ByteString`并以此为 `Flow` 处理的起点，然后将其提供给我们之前学习的文件写入类`Sink`。由此导出的蓝图是`Sink[String, Future[IOResult]]` ，这意味着它接受字符串作为其输入，并且将在物化时创建 `Future[IOResult]` 类型的辅助信息（当我们将 Source 或 Flow 进行串联操作时，辅助信息的类型——称为“物化值”——通常由最左边的起点给出；但是因为我们要求由右边的 `FileIO.toPath` Sink 提供该类型，所以我们需要告知以`Keep.right`参数）
 
 现在我们可以新建`Sink`并将它附加到我们的`factorials`源——该源将对数字做一个小小的调整，将之转换为字符串：
 
@@ -316,7 +316,7 @@ tweets.buffer(10, OverflowStrategy.dropHead).map(slowComputation).runWith(Sink.i
 
 ## 值的物化
 
-到目前为止，我们只使用 Flows 处理数据并在某种外部 Sink 中消费它——无论是通过打印值还是将它们存储在某个外部系统中。然而，有时我们可能对可以从物化处理管道中获得的某些值感兴趣。例如，我们想知道我们处理了多少条推文。虽然这个问题在推文无限流的情况下并不那么明显（在流设置中回答这个问题的一种方法是创建一个描述为“*到目前为止*，我们已经处理过 N 条推文的计数器流”），但通常可以处理有限流并得出一个不错的结果，例如元素总数。
+到目前为止，我们只使用 Flows 处理数据并在某种外部 Sink 中消费它——无论是通过打印还是将它们存储在某个外部系统中。然而，有时我们可能对可以从物化处理管道中获得的某些值感兴趣。例如，我们想知道我们处理了多少条推文。虽然这个问题在推文无限流的情况下并不那么明显（在流设置中回答这个问题的一种方法是创建一个描述为“*到目前为止*，我们已经处理过 N 条推文的计数器流”），但通常可以处理有限流并得出一个不错的结果，例如元素总数。
 
 首先，让我们写一个这样的元素计数器`Sink.fold`，看看类型是怎样的：
 
@@ -374,3 +374,4 @@ runWith()`是一种方便的方法，它会自动忽略任何其他运算符的�
 ----
 
 https://doc.akka.io/docs/akka/current/stream/stream-quickstart.html
+

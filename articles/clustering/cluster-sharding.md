@@ -2,39 +2,104 @@
 ## 依赖
 为了使用集群分片（`Cluster Sharding`），你必须在项目中添加如下依赖：
 
-```xml
-<!-- Maven -->
-<dependency>
-  <groupId>com.typesafe.akka</groupId>
-  <artifactId>akka-cluster-sharding_2.11</artifactId>
-  <version>2.5.19</version>
-</dependency>
-
-<!-- Gradle -->
-dependencies {
-  compile group: 'com.typesafe.akka', name: 'akka-cluster-sharding_2.11', version: '2.5.19'
-}
-
-<!-- sbt -->
-libraryDependencies += "com.typesafe.akka" %% "akka-cluster-sharding" % "2.5.19"
+```scala
+val AkkaVersion = "2.6.16"
+libraryDependencies += "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
 ```
-## 示例项目
-你可以查看「[集群分片](https://developer.lightbend.com/start/?group=akka&amp;project=akka-samples-cluster-sharding-java)」项目，以了解 Akka 集群分片的实际使用情况。
+| Project Info: Akka Cluster Sharding (typed) |                                                              |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| Artifact                                    | com.typesafe.akka  akka-cluster-sharding-typed  2.6.16  [Snapshots are available](https://doc.akka.io/docs/akka/current/typed/project/links.html#snapshots-repository) |
+| JDK versions                                | Adopt OpenJDK 8Adopt OpenJDK 11                              |
+| Scala versions                              | 2.12.14, 2.13.6                                              |
+| JPMS module name                            | akka.cluster.sharding.typed                                  |
+| License                                     | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0.html) |
+| Readiness level                             | [Supported](https://developer.lightbend.com/docs/introduction/getting-help/support-terminology.html#supported), [Lightbend Subscription](https://www.lightbend.com/lightbend-subscription) provides support  Since 2.6.0, 2019-11-06 |
+| Home page                                   | https://akka.io/                                             |
+| API documentation                           | [API (Scaladoc)](https://doc.akka.io/api/akka/2.6.16/akka/cluster/sharding/typed/index.html)  [API (Javadoc)](https://doc.akka.io/japi/akka/2.6.16/akka/cluster/sharding/typed/package-summary.html) |
+| Forums                                      | [Lightbend Discuss](https://discuss.akka.io)  [akka/akka Gitter channel](https://gitter.im/akka/akka) |
+| Release notes                               | [akka.io blog](https://akka.io/blog/news-archive.html)       |
+| Issues                                      | [Github issues](https://github.com/akka/akka/issues)         |
+| Sources                                     | https://github.com/akka/akka                                 |
 
 ## 简介
-当你需要将 Actor 分布在集群中的多个节点上，并且希望能够使用它们的逻辑标识符与它们进行交互，但不必关心它们在集群中的物理位置时，集群分片（`Cluster sharding`）非常有用，这也可能随着时间的推移而改变。
+当你需要将 Actor 分布在集群中的多个节点上，并且希望能够使用它们的逻辑标识符与它们进行交互，但不必关心它们可能随着时间的推移而改变在集群中的物理位置时，集群分片（`Cluster sharding`）非常有用。
 
 例如，它可以是表示域驱动设计（`Domain-Driven Design`）术语中聚合根（`Aggregate Roots`）的 Actor。在这里，我们称这些 Actor 为“实体”。这些 Actor 通常具有持久（`durable`）状态，但此功能不限于具有持久状态的 Actor。
 
-集群切分通常在有许多状态 Actor 共同消耗的资源（例如内存）多于一台机器上所能容纳的资源时使用。如果你只有几个有状态的 Actor，那么在集群单例（`Cluster Singleton`）节点上运行它们可能更容易。
+[介绍阿卡集群拆分视频](https://akka.io/blog/news/2019/12/16/akka-cluster-sharding-intro-video)是学习集群分片的一个很好的起点
 
-在这个上下文中，分片意味着具有标识符（称为实体）的 Actor 可以自动分布在集群中的多个节点上。每个实体 Actor 只在一个地方运行，消息可以发送到实体，而不需要发送者知道目标 Actor 的位置。这是通过这个扩展提供的`ShardRegion` Actor 发送消息来实现的，它知道如何将带有实体 ID 的消息路由到最终目标。
+集群切分通常在有许多有状态 Actor 同时消耗超过一台机器上所能容纳的资源（例如内存）时使用。如果你只有几个有状态的 Actor，那么在集群单例（[Cluster Singleton](cluster-singleton.md)）节点上运行它们可能更容易。
 
-如果启用了该功能，则集群分片将不会在状态为`WeaklyUp`的成员上活动。
+在这个上下文中，分片意味着具有标识符的实体 Actor 可以自动分布在集群中的多个节点上。每个实体 Actor 只在一个地方运行，消息可以发送到实体，而不需要发送者知道目标 Actor 的位置。这是通过这个扩展提供的`ShardRegion` Actor 发送消息来实现的，它知道如何将带有实体 ID 的消息路由到最终目标。
 
-- **警告**：不要将 Cluster Sharding 与 Automatic Downing 一起使用，因为它允许集群分裂为两个单独的集群，从而导致多个分片和实体启动，每个集群中只有一个节点！详见「[Downing](https://doc.akka.io/docs/akka/current/cluster-usage.html#automatic-vs-manual-downing)」。
+集群分片不会被分配到状态为 [WeaklyUp](cluster-membership.md#WeaklyUp) 的成员上，如果该成员设置了该特征。
 
-## 一个示例
+- **警告**：不要将 Cluster Sharding 与 Automatic Downing 一起使用，因为这可能因为网络问题或系统过载（长时间GC），而导致将集群分裂为多个分离的集群，从而导致多个分片与实体在不同的集群中被启动！详见「[Downing](cluster.md#automatic-vs-manual-downing)」。
+
+## 基本示例
+
+通过 `ClusterSharding` 扩展来得到 Sharding
+
+```scala
+import akka.cluster.sharding.typed.ShardingEnvelope
+import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
+import akka.cluster.sharding.typed.scaladsl.EntityRef
+
+val sharding = ClusterSharding(system)
+```
+
+通常将分片和持久性一起使用。任何 Behavior 都可以被用于 Sharding，例如下面一个简单的计数器：
+
+```scala
+object Counter {
+  sealed trait Command
+  case object Increment extends Command
+  final case class GetValue(replyTo: ActorRef[Int]) extends Command
+
+  def apply(entityId: String): Behavior[Command] = {
+    def updated(value: Int): Behavior[Command] = {
+      Behaviors.receiveMessage[Command] {
+        case Increment =>
+          updated(value + 1)
+        case GetValue(replyTo) =>
+          replyTo ! value
+          Behaviors.same
+      }
+    }
+
+    updated(0)
+
+  }
+}
+```
+
+每个实体类型都有一个键，然后用于检索给定实体标识符的 `EntityRef`。请注意，在这个示例的 `Counter.apply` 函数并未使用到它的`entityId`参数，这只是用来演示它是怎么被传递给实体的。另一种方法是在需要时将 `entityId` 作为消息的一部分发送。
+
+```scala
+val TypeKey = EntityTypeKey[Counter.Command]("Counter")
+
+val shardRegion: ActorRef[ShardingEnvelope[Counter.Command]] =
+  sharding.init(Entity(TypeKey)(createBehavior = entityContext => Counter(entityContext.entityId)))
+```
+
+然后通过`EntityRef`j将消息发送给特定的实体。该实体的`entityId`和名称可以从`EntityRef`中获得。也可以将方法包装在一个`ShardingEnvelope`或定义在提取器函数中，并然后消息直接发送到分片区域。
+
+```scala
+// With an EntityRef
+val counterOne: EntityRef[Counter.Command] = sharding.entityRefFor(TypeKey, "counter-1")
+counterOne ! Counter.Increment
+
+// Entity id is specified via an `ShardingEnvelope`
+shardRegion ! ShardingEnvelope("counter-1", Counter.Increment)
+```
+
+
+
+
+
+
+
 这就是实体 Actor 的样子：
 
 ```java
